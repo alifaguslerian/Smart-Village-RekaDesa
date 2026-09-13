@@ -1,4 +1,4 @@
-# Formula — RekaDesa (Phase 0)
+# Formula — RekaDesa (Phase 1b)
 
 Semua komponen dinormalisasi 0–100 sebelum × bobot. Bobot default **30/25/20/15/10** (config-driven, dapat dikonfigurasi — tapi fixed sepanjang demo).
 
@@ -6,20 +6,27 @@ Semua komponen dinormalisasi 0–100 sebelum × bobot. Bobot default **30/25/20/
 
 | Komponen | Bobot | Formula |
 |---|---|---|
-| Development Gap | 30% | `100 - skor_IDM_subdimensi` |
+| Development Gap | 30% | `100 - clamp(skor_IDM,0,100)` — clamp [0,100] anti-negatif |
 | People Affected | 25% | `min_max_normalize(jumlah_penerima)` relatif ke kandidat periode sama |
-| Urgency | 20% | input 0–100 bebas + anchor deskriptif (0–39 rendah, 40–69 sedang, 70–89 tinggi, 90–100 darurat) |
-| Development Impact | 15% | `(kategori + cakupan)/2`, kategori Rendah=33 Sedang=67 Tinggi=100 (**design parameter**), cakupan=`penerima/total_kebutuhan*100` |
-| Cost Efficiency | 10% | `min_max_normalize(penerima/biaya)` relatif |
+| Urgency | 20% | `clamp(input,0,100)` bebas + anchor (0–39 rendah, 40–69 sedang, 70–89 tinggi, 90–100 darurat) |
+| Development Impact | 15% | `(kategori + cakupan)/2`, kategori Rendah=33 Sedang=67 Tinggi=100 (**design parameter**), cakupan=`clamp(penerima/total_kebutuhan*100,0,100)`, kategori fallback Sedang (67) + `.strip().capitalize()` |
+| Cost Efficiency | 10% | `min_max_normalize(penerima/biaya)` relatif, `biaya<=0 → 0.0` (tidak negatif) |
 
-`min_max = (x-min)/(max-min)*100`, fallback **50** netral kalau `max==min` (metrik tidak membedakan → 50 jujur, bukan 100).
+`min_max = (x-min)/(max-min)*100`, fallback **50** netral kalau `max==min`.
 
 People Affected vs DI-cakupan beda denominator (reach vs depth) — bukan double counting.
+
+## Alokasi (Knapsack)
+
+- `weight = ceil(biaya / 1_000_000)` — **ceil** agar 10.4jt → 11 unit, tidak pernah overspend di kasus desimal.
+- `value = round(score*10)`, `capacity = budget // 1_000_000`, `O(n×capacity)` instant untuk n=8.
+- Output: `selected` + `unselected` + `total_cost` + `remaining_budget = budget - total_cost`.
+- Preset diskrit 300/500/750/1000 jt precompute (`allocate_presets`), monotonic score.
 
 ## Worked Example (validasi)
 
 **Air Bersih Dusun II:** Gap 93×30%=27.9, PA 96×25%=24.0, Urgency 88×20%=17.6, DI 90×15%=13.5, CE 90×10%=9.0 → **92.0/100**
 
-> `PA 96 = (187-43)/(193-43)*100`, `CE 90 ≈ (187/90jt - 80/150jt)/(90/40jt - 80/150jt)*100`, `DI 90 = (100+79.91)/2`
+> `PA 96 = (187-43)/(193-43)*100`, `CE 90 ≈ (187/90jt - 80/150jt)/(90/40jt - 80/150jt)*100`, `DI 90 = (100+79.91)/2` — semua sudah assert per-komponen + e2e via JSON `/scored` & `/programs/:id`.
 
-_Akan diperluas saat Phase 1 (knapsack) & Phase 2 (alur). 33/67/100 & anchor urgency adalah design parameter — disebutkan eksplisit di sini._
+_33/67/100 & anchor urgency adalah design parameter — disebutkan eksplisit di sini._
