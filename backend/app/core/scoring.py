@@ -51,11 +51,13 @@ class ScoredProgram:
 
 
 def compute_development_gap(skor_idm: float) -> float:
+    skor_idm = max(0.0, min(100.0, float(skor_idm)))
     return 100.0 - skor_idm
 
 
 def compute_development_impact(di_kategori: str, jumlah_penerima: int, total_kebutuhan: int) -> float:
-    kategori_val = DI_KATEGORI_MAP[di_kategori]
+    key = str(di_kategori).strip().capitalize()
+    kategori_val = DI_KATEGORI_MAP.get(key, DI_KATEGORI_MAP["Sedang"])  # fallback 67, anti-KeyError
     cakupan = (jumlah_penerima / total_kebutuhan * 100.0) if total_kebutuhan > 0 else 0.0
     cakupan = max(0.0, min(100.0, cakupan))
     return (kategori_val + cakupan) / 2.0
@@ -75,14 +77,15 @@ def score_all_programs(
     penerima_vals = [p.jumlah_penerima for p in programs]
     pa_min, pa_max = min(penerima_vals), max(penerima_vals)
 
-    ce_ratios = [p.jumlah_penerima / p.biaya if p.biaya > 0 else 0.0 for p in programs]
+    ce_ratios = [p.jumlah_penerima / float(p.biaya) if p.biaya > 0 else 0.0 for p in programs]
+    # clamp biaya <=0 tetap 0.0 ratio (tidak negatif), jadi CE tidak pernah <0
     ce_min, ce_max = min(ce_ratios), max(ce_ratios)
 
     results: List[ScoredProgram] = []
     for prog, ce_ratio in zip(programs, ce_ratios):
         dg = compute_development_gap(prog.skor_idm_dimensi)
         pa = min_max_normalize(float(prog.jumlah_penerima), float(pa_min), float(pa_max))
-        urg = float(prog.urgency)
+        urg = max(0.0, min(100.0, float(prog.urgency)))
         di = compute_development_impact(prog.di_kategori, prog.jumlah_penerima, prog.total_kebutuhan_dimensi)
         ce = min_max_normalize(ce_ratio, ce_min, ce_max)
 
