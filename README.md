@@ -6,42 +6,61 @@ Sistem pendukung keputusan untuk **prioritas & alokasi anggaran pembangunan desa
 
 ## Status
 
-**Phase 0/0b selesai** — scoring engine deterministik + seed 8 program (valid: Air Bersih Dusun II = **92.0**). Backend & frontend menyusul per phase.
+**Phase 0, 0b, 1, 1b selesai** — scoring deterministik + DP allocation + FastAPI + seed 8 program (valid: Air Bersih Dusun II = **92.0** per-komponen + e2e via API ✅ 11/11 tests). Frontend menyusul Phase 2.
 
-## Cara Jalankan (Phase 0)
+## Cara Jalankan
+
+### Backend only (Phase 0-1 tanpa DB)
 
 ```bash
-# 1) install
 pip install -r backend/requirements.txt
-
-# 2) test — wajib hijau sebelum lanjut phase
-PYTHONPATH=backend pytest backend/tests/test_tuned_seed.py -v
-# harap: 3 passed (27.9/24.0/17.6/13.5/9.0 → 92.0)
-
-# 3) cek manual
-PYTHONPATH=backend python -c "from app.core.canonical_seed import CANONICAL_PROGRAMS; from app.core.scoring import score_all_programs; s=score_all_programs(CANONICAL_PROGRAMS); air=[x for x in s if x.name=='Air Bersih Dusun II'][0]; print([round(v,1) for v in air.contributions.values()], round(air.priority_score,1))"
+PYTHONPATH=backend pytest backend/tests/test_tuned_seed.py backend/tests/test_allocation.py -v
+# 10 passed (canonical 92.0 + DP + ceil edge)
 ```
 
-> Catatan Windows PowerShell: `set PYTHONPATH=backend` kalau pakai CMD. `$env:PYTHONPATH="backend"` untuk PowerShell — set tiap buka terminal baru.
+### Backend + DB (Phase 1b — SQLite fallback, tanpa Docker)
+
+```powershell
+pip install -r backend/requirements.txt
+
+# PowerShell (Windows):
+$env:PYTHONPATH="backend"; $env:DATABASE_URL="sqlite:///./rekadesa.db"
+python -m app.db.seed
+python -m pytest backend/tests -v          # 11 passed (tambah e2e 92.0 via /scored & /programs/:id)
+python -m uvicorn app.main:app --reload --port 8000
+# buka http://localhost:8000/docs — coba GET /api/villages/1/scored → Air Bersih 92.0
+```
+
+> `DATABASE_URL` default MySQL (`mysql+pymysql://rekadesa:rekadesa123@localhost:3306/rekadesa`). SQLite fallback hanya safety net hari H via env var — memanfaatkan abstraksi SQLAlchemy, **primary tetap MySQL** (via `docker compose up` kalau ada).
+
+```bash
+# CMD:
+set PYTHONPATH=backend && set DATABASE_URL=sqlite:///./rekadesa.db && python -m pytest backend/tests -v
+```
 
 ## Struktur
 
 ```
 backend/app/core/
-  config.py          # weights 30/25/20/15/10 (config-driven, default fixed di demo)
-  scoring.py         # 5 komponen deterministik, fallback min_max → 50 netral
-  canonical_seed.py  # 8 program canonical (single source of truth)
+  config.py          # weights 30/25/20/15/10 (config-driven, default fixed)
+  scoring.py         # 5 komponen + clamp/fallback, fallback min_max 50 netral
+  allocation.py      # DP 0/1 knapsack, unit Rp1jt (ceil), remaining+unselected
+  canonical_seed.py  # 8 program canonical (single source, PA 96 / CE 90 exact)
+backend/app/{db,models,api,schemas}  # Session (MySQL/SQLite), Village/Program, routes, schemas
 backend/tests/
-  test_tuned_seed.py # assert per-komponen 92.0 (anti-canceling bug)
+  test_tuned_seed.py # 92.0 per-komponen 27.9/24.0/17.6/13.5/9.0
+  test_allocation.py # DP vs brute, 4 preset, ceil edge 10.4jt
+  test_api_e2e.py    # e2e via /scored & /programs/:id + remaining/unselected
 docs/
-  FORMULA.md         # formula & design parameters
-  ARCHITECTURE.md    # alur sistem (menyusul Phase 2)
+  FORMULA.md         # formula & design params
+  ARCHITECTURE.md    # alur (menyusul Phase 2)
   DEMO_SCRIPT.md     # skrip 3 menit (menyusul Phase 3)
 ```
 
 ## Aturan
 
-- Bobot **30/25/20/15/10** fixed sepanjang demo (tapi config-driven — bisa diubah di code).
-- DP bukan greedy. Preset diskrit 4 titik. AI hanya narrative layer.
+- Bobot **30/25/20/15/10** fixed di demo (config-driven).
+- DP bukan greedy. Unit Rp1jt (ceil, anti-overspend). Preset diskrit 4 titik. AI hanya narrative layer.
+- Label UI pisah: `Priority Engine — Deterministic` vs `AI Explanation` (Phase 2/3).
 
-_Dokumen ini akan di-update tiap phase. Detail strategi internal tidak di-push._
+_Dokumen ini akan di-update tiap phase. Strategi internal tidak di-push._
