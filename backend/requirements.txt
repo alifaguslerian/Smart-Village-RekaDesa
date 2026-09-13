@@ -1,0 +1,2 @@
+# Phase 0 — cuma butuh pytest. Phase 1b nanti nambah fastapi/sqlalchemy
+pytest==9.1.1

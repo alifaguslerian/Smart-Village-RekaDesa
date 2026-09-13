@@ -1,0 +1,53 @@
+# Secrets & env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# DB & local data
+*.db
+*.sqlite
+*.sqlite3
+rekadesa.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.venv*/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Rawan musuh — strategi internal JANGAN ke-push
+# (lu push manual kalau mau; default: diblok)
+BUILD_CONTEXT.md
+proposal_pendaftaran.pdf
+proposal_text.txt
+proposal*.pdf
+proposal*.txt
+.aphackaton/
+.privat*/
+strategie*/
