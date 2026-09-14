@@ -79,17 +79,20 @@ def allocate(req: AllocateRequest, db: Session = Depends(get_db)):
     if not programs:
         raise HTTPException(404, "Tidak ada program untuk desa ini")
     result = knapsack_allocate(scored, req.budget)
-    selected_names = {s.name for s in result.selected}
-    selected_out = []
-    unselected_out = []
+    selected_ids = {id(s) for s in result.selected}
+    order = {id(s): i for i, s in enumerate(result.selected)}
+    selected_out: list[ScoredProgramOut] = []
+    unselected_out: list[ScoredProgramOut] = []
+    # kumpulkan dengan order agar kebal duplikat nama
+    tmp_selected: list[tuple[int, ScoredProgramOut]] = []
     for p, s in zip(programs, scored):
         out = _to_scored_out(p, s)
-        if p.name in selected_names:
-            selected_out.append(out)
+        if id(s) in selected_ids:
+            tmp_selected.append((order[id(s)], out))
         else:
             unselected_out.append(out)
-    order = {name: i for i, name in enumerate([s.name for s in result.selected])}
-    selected_out.sort(key=lambda x: order.get(x.name, 999))
+    tmp_selected.sort(key=lambda x: x[0])
+    selected_out = [o for _, o in tmp_selected]
     return AllocationOut(
         budget=req.budget,
         total_cost=result.total_cost,
@@ -107,13 +110,15 @@ def get_presets(village_id: int, db: Session = Depends(get_db)):
     results = allocate_presets(scored, BUDGET_PRESETS)
     out = {}
     for budget, res in results.items():
-        names = {s.name for s in res.selected}
-        selected = []
+        sel_ids = {id(s) for s in res.selected}
+        order = {id(s): i for i, s in enumerate(res.selected)}
+        # kumpulkan dengan order
+        tmp: list[tuple[int, ScoredProgramOut]] = []
         for p, s in zip(programs, scored):
-            if p.name in names:
-                selected.append(_to_scored_out(p, s))
-        order = {n: i for i, n in enumerate([s.name for s in res.selected])}
-        selected.sort(key=lambda x: order.get(x.name, 999))
+            if id(s) in sel_ids:
+                tmp.append((order[id(s)], _to_scored_out(p, s)))
+        tmp.sort(key=lambda x: x[0])
+        selected = [o for _, o in tmp]
         out[str(budget)] = {
             "budget": budget,
             "total_cost": res.total_cost,
