@@ -1,26 +1,20 @@
-# Architecture — RekaDesa
-
-**Phase 0/0b — akan diperluas per phase.**
-
-## Saat ini
+# Arsitektur RekaDesa — kondisi saat ini
 
 ```
-Usulan warga + IDM
-        ↓
-Scoring Engine (deterministik, 5 komponen, fallback 50)
-        ↓
-Priority Score 0–100
-        ↓
-(Phase 1) Allocation DP → kombinasi optimal
-        ↓
-(Phase 1b) API (FastAPI + SQLAlchemy)
-        ↓
-(Phase 2/3) Frontend: single-scroll golden path + /public/:id
-        ↓
-Keputusan: Kepala Desa/BPD (manusia)
+Dataset desa dan usulan (seed Desa Suka Maju adalah simulasi)
+  → FastAPI + SQLAlchemy (SQLite demo / DATABASE_URL produksi)
+  → scoring deterministik 5 komponen, bobot 30/25/20/15/10
+  → Priority Score dan rincian kontribusi
+  → 0/1 Knapsack DP, biaya ceil ke unit Rp1 juta
+  → rekomendasi, usulan belum terpilih, sisa pagu, empat preset
+  → dashboard internal / portal warga terpisah di /public/:village_id
+  → keputusan akhir melalui musyawarah Kepala Desa dan BPD
 ```
 
-- Weights config-driven (`backend/app/core/config.py` — `ScoringWeights`), tapi default fixed di demo.
-- MySQL primary (rencana), SQLite fallback via `DATABASE_URL` (safety net).
+Scoring dan DP tidak memakai AI. Kotak *Narrative Layer* pada frontend saat ini memakai template teks demo yang mengikuti data program; belum ada layanan AI dinamis. Skor contoh Air Bersih Dusun II tetap 92,00. Optimalitas alokasi berlaku pada model biaya diskret Rp1 juta, bukan pada tiap rupiah. Program tanpa penerima, biaya nonpositif, dan nilai urgensi/IDM di luar 0–100 ditolak.
 
-_Dokumen ini akan di-update di Phase 2 (saat alur 5 tahap lengkap) & Phase 3 (label Deterministic vs AI)._
+`REKADESA_MODE=demo` adalah default lokal: SQLite tersedia tanpa konfigurasi dan fallback SQLite diizinkan jika koneksi database demo gagal. Seed contoh hanya dibuat bila database demo kosong. `REKADESA_MODE=production` mewajibkan `DATABASE_URL` dan `OPERATOR_API_KEY` acak minimal 32 karakter; koneksi database gagal membatalkan startup dan database kosong tidak otomatis diisi contoh. Jangan menaruh nilai kunci di kode atau materi presentasi; layani mode production melalui HTTPS.
+
+Di mode production, `X-Operator-Key` diwajibkan untuk alokasi, preset, daftar program mentah, dan rincian program tunggal. Endpoint desa dan skor untuk portal warga tetap terbuka dan baca saja. Dashboard meminta kunci operator melalui form sederhana dan menyimpannya hanya pada sesi browser. Ini adalah kontrol akses minimal, belum sistem akun/peran atau audit riwayat perubahan.
+
+Pagu simulasi dibatasi sampai Rp1 miliar dan unit DP dikunci Rp1 juta. Endpoint alokasi dibatasi 30 request per menit per IP pada satu proses; request tanpa kunci yang sah tidak menghabiskan kuota operator. Bila sistem dipublikasikan dengan beberapa proses atau proxy, pembatasan laju harus dikelola di lapisan deployment. Origin CORS frontend dapat diatur melalui `FRONTEND_ORIGINS` (daftar dipisah koma).

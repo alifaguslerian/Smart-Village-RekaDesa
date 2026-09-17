@@ -6,13 +6,14 @@ Semua komponen dinormalisasi 0–100 sebelum × bobot. Bobot default **30/25/20/
 
 | Komponen | Bobot | Formula |
 |---|---|---|
-| Development Gap | 30% | `100 - clamp(skor_IDM,0,100)` — clamp [0,100] anti-negatif |
+| Development Gap | 30% | `100 - skor_IDM` (input IDM di luar 0–100 ditolak) |
 | People Affected | 25% | `min_max_normalize(jumlah_penerima)` relatif ke kandidat periode sama |
-| Urgency | 20% | `clamp(input,0,100)` bebas + anchor (0–39 rendah, 40–69 sedang, 70–89 tinggi, 90–100 darurat) |
-| Development Impact | 15% | `(kategori + cakupan)/2`, kategori Rendah=33 Sedang=67 Tinggi=100 (**design parameter**), cakupan=`clamp(penerima/total_kebutuhan*100,0,100)`, kategori fallback Sedang (67) + `.strip().capitalize()` |
-| Cost Efficiency | 10% | `min_max_normalize(penerima/biaya)` relatif, `biaya<=0 → 0.0` (tidak negatif) |
+| Urgency | 20% | nilai input 0–100; di luar rentang ditolak. Anchor (0–39 rendah, 40–69 sedang, 70–89 tinggi, 90–100 darurat) adalah panduan |
+| Development Impact | 15% | `(kategori + cakupan)/2`, kategori Rendah=33 Sedang=67 Tinggi=100 (**design parameter**), cakupan=`clamp(penerima/total_kebutuhan*100,0,100)`; kategori tidak dikenal ditolak |
+| Cost Efficiency | 10% | `min_max_normalize(penerima/biaya)` relatif; biaya dan penerima harus positif |
 
 `min_max = (x-min)/(max-min)*100`, fallback **50** netral kalau `max==min`.
+Usulan dengan nol penerima ditolak; fallback 50 hanya berlaku saat semua kandidat valid memiliki nilai sama.
 
 People Affected vs DI-cakupan beda denominator (reach vs depth) — bukan double counting.
 
