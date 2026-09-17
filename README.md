@@ -6,36 +6,36 @@ Sistem pendukung keputusan untuk **prioritas & alokasi anggaran pembangunan desa
 
 ## Status
 
-**Phase 0, 0b, 1, 1b selesai** — scoring deterministik + DP allocation + FastAPI + seed 8 program (valid: Air Bersih Dusun II = **92.0** per-komponen + e2e via API ✅ 11/11 tests). Frontend menyusul Phase 2.
+**Phase 0–2 selesai** — scoring deterministik + DP allocation + FastAPI + dashboard React + portal warga. Seed 8 program adalah data simulasi (Air Bersih Dusun II = **92.0**). Tes backend saat ini **15/15 lulus**; skrip demo tiga menit tersedia sebagai draft Phase 3.
 
-## Cara Jalankan
+## Cara Jalankan (Super Cepat & Simple)
 
-### Backend only (Phase 0-1 tanpa DB)
-
-```bash
-pip install -r backend/requirements.txt
-PYTHONPATH=backend pytest backend/tests/test_tuned_seed.py backend/tests/test_allocation.py -v
-# 10 passed (canonical 92.0 + DP + ceil edge)
-```
-
-### Backend + DB (Phase 1b — SQLite fallback, tanpa Docker)
-
-```powershell
-pip install -r backend/requirements.txt
-
-# PowerShell (Windows):
-$env:PYTHONPATH="backend"; $env:DATABASE_URL="sqlite:///./rekadesa.db"
-python -m app.db.seed
-python -m pytest backend/tests -v          # 11 passed (tambah e2e 92.0 via /scored & /programs/:id)
-python -m uvicorn app.main:app --reload --port 8000
-# buka http://localhost:8000/docs — coba GET /api/villages/1/scored → Air Bersih 92.0
-```
-
-> `DATABASE_URL` default MySQL (`mysql+pymysql://rekadesa:rekadesa123@localhost:3306/rekadesa`). SQLite fallback hanya safety net hari H via env var — memanfaatkan abstraksi SQLAlchemy, **primary tetap MySQL** (via `docker compose up` kalau ada).
+Cukup jalankan **1 perintah** saja untuk menyalakan Backend FastAPI + Frontend Vite sekaligus:
 
 ```bash
-# CMD:
-set PYTHONPATH=backend && set DATABASE_URL=sqlite:///./rekadesa.db && python -m pytest backend/tests -v
+# Dari folder RakaDesa atau root workspace:
+npm run dev
+```
+
+Atau di Windows, cukup **klik dua kali** file `start.bat`.
+
+- **Dashboard Internal Pemdes**: [http://localhost:5173/](http://localhost:5173/)
+- **Portal Transparansi Warga**: [http://localhost:5173/public/1](http://localhost:5173/public/1)
+- **Dokumentasi API Swagger**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+
+---
+
+### Perintah Tambahan (Opsional)
+
+```bash
+# Jalankan hanya backend
+npm run dev:backend
+
+# Jalankan hanya frontend
+npm run dev:frontend
+
+# Jalankan automated tests
+npm run test
 ```
 
 ## Struktur
@@ -53,14 +53,15 @@ backend/tests/
   test_api_e2e.py    # e2e via /scored & /programs/:id + remaining/unselected
 docs/
   FORMULA.md         # formula & design params
-  ARCHITECTURE.md    # alur (menyusul Phase 2)
-  DEMO_SCRIPT.md     # skrip 3 menit (menyusul Phase 3)
+  ARCHITECTURE.md    # alur dan batas mode demo/production
+  DEMO_SCRIPT.md     # draft skrip 3 menit Phase 3
 ```
 
 ## Aturan
 
 - Bobot **30/25/20/15/10** fixed di demo (config-driven).
 - DP bukan greedy. Unit Rp1jt (ceil, anti-overspend). Preset diskrit 4 titik. AI hanya narrative layer.
-- Label UI pisah: `Priority Engine — Deterministic` vs `AI Explanation` (Phase 2/3).
+- Ranking/alokasi deterministik; Narrative Layer saat ini template demo, belum layanan AI dinamis.
+- Mode lokal default `REKADESA_MODE=demo`. Mode `production` mewajibkan `DATABASE_URL` dan `OPERATOR_API_KEY`, tanpa fallback ke data demo. Detail ada di `docs/ARCHITECTURE.md`.
 
 _Dokumen ini akan di-update tiap phase. Strategi internal tidak di-push._
