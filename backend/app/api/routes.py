@@ -7,6 +7,7 @@ from app.core.scoring import ProgramInput, score_all_programs
 from app.core.allocation import knapsack_allocate, allocate_presets
 from app.core.config import BUDGET_PRESETS
 from app.schemas.program import VillageOut, ProgramOut, ScoredProgramOut, AllocateRequest, AllocationOut
+from app.api.security import require_operator
 
 router = APIRouter()
 
@@ -29,7 +30,10 @@ def _score_village_programs(db: Session, village_id: int):
         )
         for p in programs
     ]
-    scored = score_all_programs(inputs)
+    try:
+        scored = score_all_programs(inputs)
+    except ValueError as exc:
+        raise HTTPException(409, f"Data usulan perlu diperbaiki: {exc}") from exc
     return village, programs, scored
 
 def _to_scored_out(prog_db: Program, scored_item):
@@ -62,7 +66,7 @@ def get_village(village_id: int, db: Session = Depends(get_db)):
     return v
 
 @router.get("/villages/{village_id}/programs", response_model=list[ProgramOut])
-def list_programs(village_id: int, db: Session = Depends(get_db)):
+def list_programs(village_id: int, db: Session = Depends(get_db), _: None = Depends(require_operator)):
     village = db.query(Village).filter(Village.id == village_id).first()
     if not village:
         raise HTTPException(404, "Desa tidak ditemukan")
@@ -74,7 +78,7 @@ def list_scored(village_id: int, db: Session = Depends(get_db)):
     return [_to_scored_out(p, s) for p, s in zip(programs, scored)]
 
 @router.post("/allocate", response_model=AllocationOut)
-def allocate(req: AllocateRequest, db: Session = Depends(get_db)):
+def allocate(req: AllocateRequest, db: Session = Depends(get_db), _: None = Depends(require_operator)):
     _, programs, scored = _score_village_programs(db, req.village_id)
     if not programs:
         raise HTTPException(404, "Tidak ada program untuk desa ini")
@@ -103,7 +107,7 @@ def allocate(req: AllocateRequest, db: Session = Depends(get_db)):
     )
 
 @router.get("/villages/{village_id}/presets")
-def get_presets(village_id: int, db: Session = Depends(get_db)):
+def get_presets(village_id: int, db: Session = Depends(get_db), _: None = Depends(require_operator)):
     _, programs, scored = _score_village_programs(db, village_id)
     if not programs:
         raise HTTPException(404, "Tidak ada program")
@@ -129,7 +133,7 @@ def get_presets(village_id: int, db: Session = Depends(get_db)):
     return out
 
 @router.get("/programs/{program_id}", response_model=ScoredProgramOut)
-def get_program_scored(program_id: int, db: Session = Depends(get_db)):
+def get_program_scored(program_id: int, db: Session = Depends(get_db), _: None = Depends(require_operator)):
     p = db.query(Program).filter(Program.id == program_id).first()
     if not p:
         raise HTTPException(404, "Program tidak ditemukan")
