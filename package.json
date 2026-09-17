@@ -1,0 +1,29 @@
+{
+  "name": "rakadesa",
+  "version": "1.0.0",
+  "description": "Sistem pendukung keputusan untuk **prioritas & alokasi anggaran pembangunan desa** yang transparan & terukur.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n \"BACKEND,FRONTEND\" -c \"cyan.bold,green.bold\" \"python -m uvicorn app.main:app --app-dir backend --port 8000 --reload\" \"npm run dev --prefix frontend\"",
+    "dev:backend": "python -m uvicorn app.main:app --app-dir backend --port 8000 --reload",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "test": "pytest backend/tests -v"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alifaguslerian/Smart-Village-RekaDesa.git"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/alifaguslerian/Smart-Village-RekaDesa/issues"
+  },
+  "homepage": "https://github.com/alifaguslerian/Smart-Village-RekaDesa#readme",
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}
