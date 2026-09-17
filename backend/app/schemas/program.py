@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from app.core.config import MAX_DEMO_BUDGET
 
 class ProgramOut(BaseModel):
     id: int
@@ -39,8 +40,8 @@ class ScoredProgramOut(BaseModel):
     priority_score: float
 
 class AllocateRequest(BaseModel):
-    village_id: int
-    budget: int
+    village_id: int = Field(gt=0)
+    budget: int = Field(ge=0, le=MAX_DEMO_BUDGET, strict=True)
 
 class AllocationOut(BaseModel):
     budget: int
