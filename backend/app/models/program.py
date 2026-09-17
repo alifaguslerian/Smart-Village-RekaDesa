@@ -1,9 +1,16 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, CheckConstraint
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 
 class Program(Base):
     __tablename__ = "programs"
+    __table_args__ = (
+        CheckConstraint("biaya > 0"),
+        CheckConstraint("jumlah_penerima > 0"),
+        CheckConstraint("total_kebutuhan_dimensi > 0"),
+        CheckConstraint("urgency >= 0 AND urgency <= 100"),
+        CheckConstraint("skor_idm_dimensi >= 0 AND skor_idm_dimensi <= 100"),
+    )
     id = Column(Integer, primary_key=True, index=True)
     village_id = Column(Integer, ForeignKey("villages.id"), nullable=False)
     name = Column(String(200), nullable=False)
