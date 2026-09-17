@@ -31,7 +31,7 @@ def _client_with_temp_db():
     importlib.reload(main_mod)
     return TestClient(main_mod.app), tmp.name
 
-def test_e2e_92_via_scored_and_program():
+def test_e2e_92_via_scored_and_program(monkeypatch):
     client, db_path = _client_with_temp_db()
     try:
         # GET /api/villages
@@ -64,12 +64,23 @@ def test_e2e_92_via_scored_and_program():
         assert alloc["remaining_budget"] == alloc["budget"] - alloc["total_cost"]
         assert len(alloc["selected"]) + len(alloc["unselected"]) == len(scored)
         assert alloc["total_cost"] <= alloc["budget"]
+        for invalid_budget in (-1, 1_000_000_001):
+            assert client.post("/api/allocate", json={"village_id": vid, "budget": invalid_budget}).status_code == 422
 
         # GET /presets
         presets = client.get(f"/api/villages/{vid}/presets").json()
         assert set(presets.keys()) == {"300000000", "500000000", "750000000", "1000000000"}
         for v in presets.values():
             assert v["remaining_budget"] == v["budget"] - v["total_cost"]
+        with monkeypatch.context() as env:
+            env.setenv("REKADESA_MODE", "production")
+            env.setenv("OPERATOR_API_KEY", "test-secret-operator-key-32-characters")
+            assert client.get(f"/api/villages/{vid}/scored").status_code == 200
+            assert client.get(f"/api/villages/{vid}/presets").status_code == 401
+            assert client.post("/api/allocate", json={"village_id": vid, "budget": 0}).status_code == 401
+            assert client.post("/api/allocate", json={"village_id": vid, "budget": 0}, headers={"X-Operator-Key": "test-secret-operator-key-32-characters"}).status_code == 200
+        statuses = [client.post("/api/allocate", json={"village_id": vid, "budget": 0}).status_code for _ in range(30)]
+        assert 429 in statuses
     finally:
         try:
             os.unlink(db_path)

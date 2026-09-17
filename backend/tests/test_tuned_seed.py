@@ -5,6 +5,7 @@ Seed canonical: PA 96.0 via (187-43)/(193-43)*100, CE ~90 via min/max ratio, DI 
 Jangan ubah angka tanpa re-validate.
 """
 import sys, os
+import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from app.core.scoring import ProgramInput, score_all_programs, min_max_normalize
 from app.core.config import DEFAULT_WEIGHTS
@@ -70,3 +71,17 @@ def test_single_program_contributions():
     assert round(s.contributions["development_impact"], 2) == 8.78
     assert s.breakdown.cost_efficiency == 50.0
     assert round(s.contributions["cost_efficiency"], 1) == 5.0
+
+
+def test_reject_invalid_scoring_inputs():
+    prog = ProgramInput(name="Rusak", biaya=0, jumlah_penerima=100, urgency=50, di_kategori="Sedang", skor_idm_dimensi=30, total_kebutuhan_dimensi=200)
+    with pytest.raises(ValueError):
+        score_all_programs([prog])
+    prog.urgency = 50
+    prog.jumlah_penerima = 0
+    with pytest.raises(ValueError):
+        score_all_programs([prog])
+    prog.biaya = 10_000_000
+    prog.urgency = 101
+    with pytest.raises(ValueError):
+        score_all_programs([prog])

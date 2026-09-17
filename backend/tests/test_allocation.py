@@ -6,6 +6,7 @@ Phase 1 — Allocation DP tests.
 - Edge: empty / zero budget / non-multiple budget
 """
 import sys, os, itertools
+import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from app.core.scoring import ProgramInput, score_all_programs
 from app.core.allocation import knapsack_allocate, allocate_presets
@@ -62,6 +63,19 @@ def test_empty_and_zero_budget():
     assert len(res.selected) == 0
     res2 = knapsack_allocate([], 500_000_000)
     assert len(res2.selected) == 0
+
+
+def test_reject_invalid_money_inputs():
+    scored = score_all_programs(get_canonical_programs())
+    for budget in (-1, 1_000_000_001):
+        with pytest.raises(ValueError):
+            knapsack_allocate(scored, budget)
+    scored[0].biaya = 0
+    with pytest.raises(ValueError):
+        knapsack_allocate(scored, 500_000_000)
+    scored[0].biaya = 90_000_000
+    with pytest.raises(ValueError):
+        knapsack_allocate(scored, 500_000_000, unit=1)
 
 
 def test_canonical_dp_optimal_500jt():
