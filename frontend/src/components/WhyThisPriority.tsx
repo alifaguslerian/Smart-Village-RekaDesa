@@ -38,13 +38,13 @@ export const WhyThisPriority: React.FC<WhyThisPriorityProps> = ({
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
         <div>
           <div className="text-[11px] font-bold tracking-[0.16em] text-teal-800 uppercase mb-1">03 / Dasar Penilaian</div>
-          <h2 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-stone-900">Rincian skor</h2>
-          <p className="text-sm text-stone-600 mt-1">Setiap poin dapat ditelusuri ke lima komponen tetap.</p>
+          <h2 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-stone-900">Rincian perhitungan</h2>
+          <p className="text-sm text-stone-600 mt-1">Telusuri asal setiap poin dari lima komponen penilaian.</p>
         </div>
 
         <div className="inline-flex self-start rounded-md border border-stone-300 p-0.5 bg-stone-100">
-          <button type="button" onClick={() => setViewMode('internal')} className={`px-3 py-1.5 rounded text-xs font-semibold ${viewMode === 'internal' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600'}`}>Perhitungan</button>
-          <button type="button" onClick={() => setViewMode('public')} className={`px-3 py-1.5 rounded text-xs font-semibold ${viewMode === 'public' ? 'bg-teal-800 text-white' : 'text-stone-600'}`}>Bahasa warga</button>
+          <button type="button" onClick={() => setViewMode('internal')} className={`px-3 py-1.5 rounded text-xs font-semibold ${viewMode === 'internal' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600'}`}>Angka</button>
+          <button type="button" onClick={() => setViewMode('public')} className={`px-3 py-1.5 rounded text-xs font-semibold ${viewMode === 'public' ? 'bg-teal-800 text-white' : 'text-stone-600'}`}>Penjelasan warga</button>
         </div>
       </div>
 

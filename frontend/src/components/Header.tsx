@@ -16,8 +16,8 @@ export const Header: React.FC<HeaderProps> = ({ villageName = 'Desa Suka Maju' }
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-[#fdfcf8]/95 backdrop-blur-md border-b border-stone-300 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 bg-[#fdfcf8]/95 backdrop-blur-md border-t-[3px] border-t-teal-800 border-b border-b-stone-300 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand & Stempel */}
           <div className="flex items-center space-x-3">
@@ -39,7 +39,7 @@ export const Header: React.FC<HeaderProps> = ({ villageName = 'Desa Suka Maju' }
           </div>
 
           {/* Navigation Steps (Clickable Anchor Rail) */}
-          <nav className="hidden md:flex items-center space-x-1 text-xs font-medium text-stone-600">
+          <nav className="hidden md:flex xl:hidden items-center space-x-1 text-xs font-medium text-stone-600">
             <button
               onClick={() => scrollTo('section-profile')}
               className="px-3 py-1.5 rounded-md hover:bg-stone-200/60 hover:text-stone-900 transition-colors"
@@ -56,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({ villageName = 'Desa Suka Maju' }
               onClick={() => scrollTo('section-why')}
               className="px-3 py-1.5 rounded-md hover:bg-stone-200/60 hover:text-stone-900 transition-colors"
             >
-                <span className="text-teal-800 font-bold mr-1">3.</span> Rincian Skor
+                <span className="text-teal-800 font-bold mr-1">3.</span> Perhitungan
             </button>
             <button
               onClick={() => scrollTo('section-presets')}
@@ -75,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({ villageName = 'Desa Suka Maju' }
               className="inline-flex items-center px-3.5 py-1.5 rounded-md text-xs font-semibold bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 shadow-2xs transition-all hover:border-stone-400 group"
               title="Buka portal transparansi publik warga (route /public/:id)"
             >
-              <span>Portal Publik Warga</span>
+              <span>Portal Warga</span>
               <ExternalLink className="w-3.5 h-3.5 ml-1.5 text-stone-500 group-hover:text-teal-700 transition-colors" />
             </Link>
           </div>

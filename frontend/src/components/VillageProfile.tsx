@@ -32,7 +32,7 @@ export const VillageProfile: React.FC<VillageProfileProps> = ({ village, loading
             01 / Kondisi Desa
           </div>
           <h2 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-stone-900">
-            Profil dan kesenjangan pembangunan
+            Kondisi dan kesenjangan desa
           </h2>
           <p className="text-sm text-stone-600 mt-1">
             {village.name} · {village.kecamatan} · {village.kabupaten}
@@ -43,21 +43,19 @@ export const VillageProfile: React.FC<VillageProfileProps> = ({ village, loading
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-[1.7fr_1fr] border border-stone-300 bg-white rounded-lg overflow-hidden">
-        <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-stone-200">
-          {indices.map(([label, code, value, status]) => (
-            <div key={code} className="p-5">
-              <div className="flex items-center justify-between text-[11px] uppercase tracking-wider text-stone-500">
-                <span>Indeks {label}</span>
-                <span className="font-mono">{code}</span>
-              </div>
-              <div className="mt-3 text-3xl font-bold font-mono text-stone-900">{value.toFixed(1)}</div>
-              <div className="mt-3 pt-3 border-t border-stone-100 text-xs text-stone-600">{status}</div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 border border-stone-300 bg-white rounded-lg overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-stone-200">
+        {indices.map(([label, code, value, status]) => (
+          <div key={code} className="p-4">
+            <div className="flex items-start justify-between gap-2 text-[10px] uppercase tracking-wider text-stone-500">
+              <span>Indeks {label}</span>
+              <span className="font-mono">{code}</span>
             </div>
-          ))}
-        </div>
+            <div className="mt-3 text-3xl font-bold font-mono text-stone-900">{value.toFixed(1)}</div>
+            <div className="mt-3 pt-3 border-t border-stone-100 text-xs text-stone-600">{status}</div>
+          </div>
+        ))}
 
-        <div className="p-5 bg-amber-50 border-t lg:border-t-0 lg:border-l border-amber-300">
+        <div className="p-4 bg-amber-50 border-amber-300">
           <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-amber-900">
             <AlertTriangle className="w-4 h-4" />
             Kesenjangan utama

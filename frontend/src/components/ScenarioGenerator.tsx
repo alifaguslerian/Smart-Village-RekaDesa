@@ -54,9 +54,9 @@ export const ScenarioGenerator: React.FC<ScenarioGeneratorProps> = ({
     <section id="section-simulator" className="scroll-mt-20 py-10 border-b border-stone-300">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
         <div>
-          <div className="text-[11px] font-bold tracking-[0.16em] text-teal-800 uppercase mb-1">02 / Optimasi Anggaran</div>
-          <h2 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-stone-900">Simulasi alokasi</h2>
-          <p className="text-sm text-stone-600 mt-1">Cari kombinasi program dengan skor total terbaik dalam batas pagu.</p>
+          <div className="text-[11px] font-bold tracking-[0.16em] text-teal-800 uppercase mb-1">02 / Alokasi Anggaran</div>
+          <h2 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-stone-900">Simulasi anggaran</h2>
+          <p className="text-sm text-stone-600 mt-1">Pilih pagu untuk menghitung kombinasi program dengan skor total tertinggi.</p>
         </div>
         <p className="text-[11px] font-mono text-stone-500">0/1 KNAPSACK · UNIT RP1 JUTA · DETERMINISTIK</p>
       </div>
@@ -64,7 +64,7 @@ export const ScenarioGenerator: React.FC<ScenarioGeneratorProps> = ({
       <div className="border border-stone-300 bg-white rounded-lg p-4 sm:p-5 mb-5">
         <div className="grid lg:grid-cols-[1fr_300px] gap-5 lg:items-end">
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Pilih pagu</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Pagu simulasi</label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {PRESET_AMOUNTS.map((preset) => {
                 const active = budgetInput === preset.value;
@@ -86,7 +86,7 @@ export const ScenarioGenerator: React.FC<ScenarioGeneratorProps> = ({
           </div>
 
           <form onSubmit={handleCustomSubmit}>
-            <label htmlFor="custom-budget" className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Pagu lain</label>
+            <label htmlFor="custom-budget" className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Nominal khusus</label>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <span className="absolute inset-y-0 left-3 flex items-center text-xs text-stone-500 font-mono">Rp</span>
@@ -101,9 +101,9 @@ export const ScenarioGenerator: React.FC<ScenarioGeneratorProps> = ({
                   className="w-full pl-9 pr-3 py-2.5 border border-stone-300 rounded-md text-xs font-mono focus:ring-2 focus:ring-teal-700 focus:border-teal-700 bg-stone-50"
                 />
               </div>
-              <button type="submit" disabled={loading} className="px-4 py-2.5 bg-stone-900 text-white rounded-md text-xs font-semibold hover:bg-black disabled:opacity-50">
+              <button type="submit" disabled={loading} className="inline-flex items-center gap-2 px-4 py-2.5 bg-stone-900 text-white rounded-md text-xs font-semibold hover:bg-black disabled:opacity-50">
                 <Calculator className="w-4 h-4" aria-hidden="true" />
-                <span className="sr-only">{loading ? 'Menghitung' : 'Hitung alokasi'}</span>
+                <span>{loading ? 'Menghitung' : 'Hitung'}</span>
               </button>
             </div>
           </form>
@@ -115,10 +115,10 @@ export const ScenarioGenerator: React.FC<ScenarioGeneratorProps> = ({
           <div className="border-y border-stone-300 bg-stone-50/60 mb-6">
             <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-stone-300">
               {[
-                ['Pagu', formatRupiah(allocationResult.budget)],
-                ['Terpakai', formatRupiah(allocationResult.total_cost)],
+                ['Anggaran', formatRupiah(allocationResult.budget)],
+                ['Dialokasikan', formatRupiah(allocationResult.total_cost)],
                 ['Sisa', formatRupiah(allocationResult.remaining_budget)],
-                ['Skor total', allocationResult.total_score.toFixed(1)],
+                ['Skor gabungan', allocationResult.total_score.toFixed(1)],
               ].map(([label, value]) => (
                 <div key={label} className="p-4">
                   <div className="text-[10px] uppercase tracking-wider text-stone-500">{label}</div>
@@ -134,10 +134,10 @@ export const ScenarioGenerator: React.FC<ScenarioGeneratorProps> = ({
           <div className="mb-5">
             <div className="flex items-end justify-between gap-3 mb-3">
               <div>
-                <h3 className="text-sm font-bold text-stone-900">Program direkomendasikan</h3>
-                <p className="text-xs text-stone-500">{allocationResult.selected.length} program masuk kombinasi optimal.</p>
+                <h3 className="text-sm font-bold text-stone-900">Program terpilih</h3>
+                <p className="text-xs text-stone-500">{allocationResult.selected.length} program membentuk kombinasi terbaik.</p>
               </div>
-              <span className="hidden sm:block text-[10px] uppercase tracking-wider text-stone-400">Klik baris untuk melihat formula</span>
+              <span className="hidden sm:block text-[10px] uppercase tracking-wider text-stone-400">Pilih program untuk melihat rincian</span>
             </div>
 
             <div className="border-y border-stone-300 divide-y divide-stone-200">
@@ -166,7 +166,7 @@ export const ScenarioGenerator: React.FC<ScenarioGeneratorProps> = ({
           {allocationResult.unselected.length > 0 && (
             <div className="border border-stone-300 rounded-lg">
               <button type="button" onClick={() => setShowUnselected(!showUnselected)} className="w-full flex items-center justify-between p-4 text-left text-xs font-semibold text-stone-700 hover:bg-stone-50">
-                <span className="flex items-center gap-2"><XCircle className="w-4 h-4 text-amber-700" />{allocationResult.unselected.length} program belum terpilih · lihat alasannya</span>
+                <span className="flex items-center gap-2"><XCircle className="w-4 h-4 text-amber-700" />{allocationResult.unselected.length} program di luar kombinasi · lihat alasannya</span>
                 {showUnselected ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
               {showUnselected && (
