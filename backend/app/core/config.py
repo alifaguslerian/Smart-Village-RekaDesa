@@ -46,6 +46,7 @@ URGENCY_ANCHORS = {
 
 # Budget preset diskrit — BUKAN slider kontinu (ATURAN KERAS)
 BUDGET_PRESETS = [300_000_000, 500_000_000, 750_000_000, 1_000_000_000]
+MAX_DEMO_BUDGET = 1_000_000_000
 
 # Knapsack unit — Rp1jt = zero rounding loss (lock reviewer approved)
 KNAPSACK_UNIT = 1_000_000

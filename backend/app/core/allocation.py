@@ -9,7 +9,7 @@ from typing import List
 
 import math
 
-from app.core.config import KNAPSACK_UNIT
+from app.core.config import KNAPSACK_UNIT, MAX_DEMO_BUDGET
 from app.core.scoring import ScoredProgram
 
 
@@ -38,10 +38,20 @@ def knapsack_allocate(
 ) -> AllocationResult:
     """
     Standard 0/1 knapsack DP, O(n × capacity). n=8, capacity~1000 -> instant.
-    weight = max(1, round(biaya/unit)) kalau biaya>0 else 0 (free item)
+    weight = max(1, ceil(biaya/unit)); biaya nonpositif ditolak
     value  = round(priority_score * 10) — presisi 1 desimal
     capacity = budget // unit
     """
+    if unit <= 0:
+        raise ValueError("Unit diskretisasi harus positif")
+    if unit != KNAPSACK_UNIT:
+        raise ValueError("Simulasi memakai unit tetap Rp 1 juta")
+    if budget < 0:
+        raise ValueError("Pagu anggaran tidak boleh negatif")
+    if budget > MAX_DEMO_BUDGET:
+        raise ValueError("Pagu anggaran melebihi batas simulasi Rp 1 miliar")
+    if any(p.biaya <= 0 for p in scored_programs):
+        raise ValueError("Biaya program harus positif")
     n = len(scored_programs)
     if n == 0 or budget <= 0:
         return AllocationResult(
@@ -56,10 +66,7 @@ def knapsack_allocate(
 
     weights = []
     for p in scored_programs:
-        if p.biaya <= 0:
-            weights.append(0)
-        else:
-            weights.append(max(1, math.ceil(p.biaya / unit)))
+        weights.append(max(1, math.ceil(p.biaya / unit)))
     values = [round(p.priority_score * 10) for p in scored_programs]
     capacity = budget // unit
 

@@ -5,6 +5,7 @@ Formula presisi BUILD_CONTEXT §2.
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import List
+import math
 
 from app.core.config import DEFAULT_WEIGHTS, DI_KATEGORI_MAP, ScoringWeights
 
@@ -74,11 +75,18 @@ def score_all_programs(
     if not programs:
         return []
 
+    for p in programs:
+        if p.biaya <= 0 or p.jumlah_penerima <= 0 or p.total_kebutuhan_dimensi <= 0:
+            raise ValueError(f"Data biaya/penerima/kebutuhan tidak valid: {p.name}")
+        if p.di_kategori.strip().capitalize() not in DI_KATEGORI_MAP:
+            raise ValueError(f"Kategori dampak tidak valid: {p.name}")
+        if not all(math.isfinite(x) and 0 <= x <= 100 for x in (p.urgency, p.skor_idm_dimensi)):
+            raise ValueError(f"Urgensi/IDM harus dalam rentang 0–100: {p.name}")
+
     penerima_vals = [p.jumlah_penerima for p in programs]
     pa_min, pa_max = min(penerima_vals), max(penerima_vals)
 
-    ce_ratios = [p.jumlah_penerima / float(p.biaya) if p.biaya > 0 else 0.0 for p in programs]
-    # clamp biaya <=0 tetap 0.0 ratio (tidak negatif), jadi CE tidak pernah <0
+    ce_ratios = [p.jumlah_penerima / float(p.biaya) for p in programs]
     ce_min, ce_max = min(ce_ratios), max(ce_ratios)
 
     results: List[ScoredProgram] = []
