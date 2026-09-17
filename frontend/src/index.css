@@ -4,16 +4,43 @@
   :root {
     --paper-bg: #fdfcf8;
     --ink: #1c1917;
+    --village-teal: #115e59;
+    --archive-amber: #b45309;
   }
 
   body {
     background-color: var(--paper-bg);
+    background-image:
+      radial-gradient(circle at 85% -10%, rgba(17, 94, 89, 0.09), transparent 34rem),
+      linear-gradient(rgba(120, 113, 108, 0.035) 1px, transparent 1px);
+    background-size: auto, 100% 32px;
+    background-attachment: fixed;
     color: var(--ink);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Segoe UI Variable Text', 'Segoe UI', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 
   .font-mono {
-    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-family: Consolas, 'Courier New', monospace;
+  }
+
+  .font-serif {
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+}
+
+@layer components {
+  .ledger-cover {
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(250, 247, 237, 0.92)),
+      repeating-linear-gradient(0deg, transparent 0 31px, rgba(120, 113, 108, 0.08) 31px 32px);
+  }
+
+  .official-panel {
+    background-image:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.045) 25%, transparent 25%),
+      linear-gradient(315deg, rgba(255, 255, 255, 0.035) 25%, transparent 25%);
+    background-size: 18px 18px;
   }
 }
 
