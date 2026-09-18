@@ -16,17 +16,15 @@
     background-size: auto, 100% 32px;
     background-attachment: fixed;
     color: var(--ink);
-    font-family: 'Segoe UI Variable Text', 'Segoe UI', Arial, sans-serif;
+    font-family: Arial, Helvetica, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
   .font-mono {
-    font-family: Consolas, 'Courier New', monospace;
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
   }
 
-  .font-serif {
-    font-family: Georgia, 'Times New Roman', serif;
-  }
 }
 
 @layer components {
