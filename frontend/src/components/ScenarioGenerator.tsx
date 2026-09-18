@@ -55,7 +55,7 @@ export const ScenarioGenerator: React.FC<ScenarioGeneratorProps> = ({
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
         <div>
           <div className="text-[11px] font-bold tracking-[0.16em] text-teal-800 uppercase mb-1">02 / Alokasi Anggaran</div>
-          <h2 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-stone-900">Simulasi anggaran</h2>
+          <h2 className="text-xl font-semibold text-stone-900 sm:text-2xl">Simulasi anggaran</h2>
           <p className="text-sm text-stone-600 mt-1">Pilih pagu untuk menghitung kombinasi program dengan skor total tertinggi.</p>
         </div>
         <p className="text-[11px] font-mono text-stone-500">0/1 KNAPSACK · UNIT RP1 JUTA · DETERMINISTIK</p>
@@ -67,17 +67,20 @@ export const ScenarioGenerator: React.FC<ScenarioGeneratorProps> = ({
             <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Pagu simulasi</label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {PRESET_AMOUNTS.map((preset) => {
-                const active = budgetInput === preset.value;
+                const active = allocationResult?.budget === preset.value;
                 return (
                   <button
                     type="button"
                     key={preset.value}
                     onClick={() => handlePresetClick(preset.value)}
-                    className={`px-3 py-2.5 rounded-md border text-xs font-bold transition-colors ${active
-                      ? 'bg-teal-800 text-white border-teal-900'
-                      : 'bg-white text-stone-700 border-stone-300 hover:border-teal-700'
+                    disabled={loading}
+                    aria-pressed={active}
+                    className={`relative px-3 py-3 rounded-md border text-xs font-bold transition-all disabled:cursor-wait disabled:opacity-60 ${active
+                      ? 'bg-teal-900 text-white border-teal-950 shadow-[inset_0_0_0_1px_rgba(94,234,212,0.25),0_5px_14px_rgba(17,94,89,0.18)]'
+                      : 'bg-stone-50 text-stone-700 border-stone-300 hover:border-teal-700 hover:bg-white'
                     }`}
                   >
+                    <span className={`mx-auto mb-1 block h-1 w-5 rounded-full ${active ? 'bg-teal-300' : 'bg-stone-300'}`} aria-hidden="true" />
                     Rp {preset.label}
                   </button>
                 );
@@ -112,7 +115,27 @@ export const ScenarioGenerator: React.FC<ScenarioGeneratorProps> = ({
 
       {allocationResult && (
         <>
-          <div className="border-y border-stone-300 bg-stone-50/60 mb-6">
+          <div className="mb-6 overflow-hidden rounded-xl border border-stone-300 bg-white shadow-[0_8px_24px_rgba(28,25,23,0.05)]">
+            <div className="flex flex-col gap-3 border-b border-stone-200 bg-stone-950 px-4 py-4 text-white sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-teal-300">Komposisi pagu</div>
+                <div className="mt-1 font-mono text-2xl font-bold">{utilization.toFixed(1)}%</div>
+              </div>
+              <div className="flex gap-5 text-[10px]">
+                <div><span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-teal-400" />Dialokasikan <strong className="ml-1 font-mono text-xs">{formatRupiah(allocationResult.total_cost)}</strong></div>
+                <div><span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-amber-400" />Sisa <strong className="ml-1 font-mono text-xs">{formatRupiah(allocationResult.remaining_budget)}</strong></div>
+              </div>
+            </div>
+            <div
+              className="flex h-4 bg-amber-300"
+              role="progressbar"
+              aria-label="Pagu yang dialokasikan"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Number(utilization.toFixed(1))}
+            >
+              <div className="h-full bg-teal-600 transition-[width] duration-300" style={{ width: `${utilization}%` }} />
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-stone-300">
               {[
                 ['Anggaran', formatRupiah(allocationResult.budget)],
@@ -125,9 +148,6 @@ export const ScenarioGenerator: React.FC<ScenarioGeneratorProps> = ({
                   <div className="mt-1 font-mono text-sm font-bold text-stone-900">{value}</div>
                 </div>
               ))}
-            </div>
-            <div className="h-1.5 bg-stone-200" aria-label={`Anggaran terpakai ${utilization.toFixed(1)} persen`}>
-              <div className="h-full bg-teal-800 transition-[width] duration-300" style={{ width: `${utilization}%` }}></div>
             </div>
           </div>
 
@@ -183,7 +203,7 @@ export const ScenarioGenerator: React.FC<ScenarioGeneratorProps> = ({
                           <AlertCircle className="w-4 h-4 shrink-0" />
                           <span>{deficit > 0
                             ? `Melebihi sisa pagu sebesar ${formatRupiah(deficit)} setelah kombinasi terpilih.`
-                            : 'Dapat masuk sisa pagu, tetapi tidak meningkatkan skor total kombinasi optimal.'}
+                            : 'Secara nominal masih muat, tetapi setelah pembulatan unit Rp1 juta kombinasi ini tidak menghasilkan skor total DP yang lebih tinggi.'}
                           </span>
                         </div>
                       </div>
