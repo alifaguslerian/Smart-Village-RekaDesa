@@ -93,7 +93,7 @@ export const PublicPortal: React.FC = () => {
             <div className="flex items-end justify-between gap-4 mb-5">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-teal-800">Urutan terbuka</p>
-                <h2 className="mt-1 font-serif text-2xl font-bold text-stone-900">Prioritas usulan desa</h2>
+                <h2 className="mt-1 text-xl font-semibold text-stone-900">Prioritas usulan desa</h2>
                 <p className="text-xs text-stone-500 mt-1">Diurutkan dari lima komponen penilaian yang dapat diperiksa.</p>
               </div>
               <span className="text-xs font-mono text-stone-500">{programs.length} PROGRAM</span>
