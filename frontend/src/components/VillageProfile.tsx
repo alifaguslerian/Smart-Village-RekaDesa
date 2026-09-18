@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Village } from '../types';
-import { AlertTriangle, ChevronDown } from 'lucide-react';
+import { AlertTriangle, ChevronDown, Leaf, TrendingUp, Users } from 'lucide-react';
 
 interface VillageProfileProps {
   village: Village | null;
@@ -17,11 +17,11 @@ export const VillageProfile: React.FC<VillageProfileProps> = ({ village, loading
     );
   }
 
-  const gapAirBersih = 100 - village.skor_idm_air_bersih;
+  const gapAirBersih = Math.max(0, Math.min(100, 100 - village.skor_idm_air_bersih));
   const indices = [
-    ['Sosial', 'IKS', village.skor_sosial, 'Sedang'],
-    ['Ekonomi', 'IKE', village.skor_ekonomi, 'Perlu penguatan'],
-    ['Lingkungan', 'IKL', village.skor_lingkungan, 'Rentan'],
+    ['Sosial', 'IKS', village.skor_sosial, 'Sedang', Users],
+    ['Ekonomi', 'IKE', village.skor_ekonomi, 'Perlu penguatan', TrendingUp],
+    ['Lingkungan', 'IKL', village.skor_lingkungan, 'Rentan', Leaf],
   ] as const;
 
   return (
@@ -31,7 +31,7 @@ export const VillageProfile: React.FC<VillageProfileProps> = ({ village, loading
           <div className="text-[11px] font-bold tracking-[0.16em] text-teal-800 uppercase mb-1">
             01 / Kondisi Desa
           </div>
-          <h2 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-stone-900">
+          <h2 className="text-xl font-semibold text-stone-900 sm:text-2xl">
             Kondisi dan kesenjangan desa
           </h2>
           <p className="text-sm text-stone-600 mt-1">
@@ -43,29 +43,53 @@ export const VillageProfile: React.FC<VillageProfileProps> = ({ village, loading
         </div>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 border border-stone-300 bg-white rounded-lg overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-stone-200">
-        {indices.map(([label, code, value, status]) => (
-          <div key={code} className="p-4">
-            <div className="flex items-start justify-between gap-2 text-[10px] uppercase tracking-wider text-stone-500">
-              <span>Indeks {label}</span>
-              <span className="font-mono">{code}</span>
+      <div className="grid overflow-hidden rounded-xl border border-stone-300 bg-white md:grid-cols-[0.9fr_1.1fr]">
+        <div className="relative flex items-center gap-5 bg-amber-50/70 p-5 sm:p-6">
+          <div className="relative h-36 w-36 shrink-0" role="img" aria-label={`Kesenjangan akses air bersih ${gapAirBersih.toFixed(1)} dari 100`}>
+            <svg className="h-full w-full -rotate-90" viewBox="0 0 120 120" aria-hidden="true">
+              <circle cx="60" cy="60" r="49" fill="none" stroke="#e7e5e4" strokeWidth="10" />
+              <circle
+                cx="60"
+                cy="60"
+                r="49"
+                fill="none"
+                pathLength="100"
+                stroke="#b45309"
+                strokeDasharray={`${gapAirBersih} ${100 - gapAirBersih}`}
+                strokeLinecap="round"
+                strokeWidth="10"
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="font-mono text-2xl font-bold text-amber-950">{gapAirBersih.toFixed(0)}</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-amber-800">gap / 100</span>
             </div>
-            <div className="mt-3 text-3xl font-bold font-mono text-stone-900">{value.toFixed(1)}</div>
-            <div className="mt-3 pt-3 border-t border-stone-100 text-xs text-stone-600">{status}</div>
           </div>
-        ))}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-900">
+              <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+              Kesenjangan utama
+            </div>
+            <h3 className="mt-2 text-lg font-semibold leading-tight text-stone-950">Akses air bersih</h3>
+            <p className="mt-2 text-xs leading-relaxed text-amber-950/75">
+              Indikator saat ini baru <span className="font-mono font-bold">{village.skor_idm_air_bersih.toFixed(1)}</span>. Semakin besar gap, semakin besar kontribusi kebutuhan pada skor prioritas.
+            </p>
+          </div>
+        </div>
 
-        <div className="p-4 bg-amber-50 border-amber-300">
-          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-amber-900">
-            <AlertTriangle className="w-4 h-4" />
-            Kesenjangan utama
-          </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-4xl font-bold font-mono text-amber-950">{gapAirBersih.toFixed(1)}</span>
-            <span className="text-xs text-amber-800">/ 100</span>
-          </div>
-          <p className="mt-1 text-sm font-semibold text-amber-950">Akses air bersih</p>
-          <p className="mt-1 text-xs text-amber-800">Skor indikator saat ini: {village.skor_idm_air_bersih.toFixed(1)}</p>
+        <div className="divide-y divide-stone-200">
+          {indices.map(([label, code, value, status, Icon]) => (
+            <div key={code} className="grid grid-cols-[36px_1fr_auto] items-center gap-3 px-5 py-4">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-teal-50 text-teal-800">
+                <Icon className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <div>
+                <div className="text-xs font-bold text-stone-900">Indeks {label}</div>
+                <div className="mt-0.5 text-[10px] text-stone-500">{code} · {status}</div>
+              </div>
+              <div className="font-mono text-xl font-semibold text-stone-900">{value.toFixed(1)}</div>
+            </div>
+          ))}
         </div>
       </div>
 
