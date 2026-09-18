@@ -26,7 +26,7 @@ export const Header: React.FC<HeaderProps> = ({ villageName = 'Desa Suka Maju' }
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-serif font-bold text-xl tracking-tight text-stone-900">RekaDesa</span>
+                <span className="text-lg font-semibold text-stone-900">RekaDesa</span>
                 <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-stone-100 text-stone-700 border border-stone-300">
                   <ShieldCheck className="w-3 h-3 mr-1 text-teal-700" />
                   SPK Deterministik
