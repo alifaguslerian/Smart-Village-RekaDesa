@@ -28,12 +28,51 @@ export const BudgetComparison: React.FC<BudgetComparisonProps> = ({
     return <section id="section-presets" className="scroll-mt-20 py-10"><div className="h-72 animate-pulse rounded bg-stone-200" /></section>;
   }
 
+  const impactData = scenarios.flatMap(([key, label]) => {
+    const data = presets[key];
+    return data ? [{
+      label: label.replace('Rp', ''),
+      reach: data.selected.reduce((total, program) => total + program.jumlah_penerima, 0),
+    }] : [];
+  });
+  const maxReach = Math.max(...impactData.map((item) => item.reach), 1);
+  const impactPoints = impactData.map((item, index) => ({
+    ...item,
+    x: impactData.length === 1 ? 128 : 14 + index * (228 / (impactData.length - 1)),
+    y: 64 - (item.reach / maxReach) * 44,
+  }));
+  const pointList = impactPoints.map((point) => `${point.x},${point.y}`).join(' ');
+
   return (
-    <section id="section-presets" className="scroll-mt-20 py-10 xl:pb-0">
-      <div className="mb-5 xl:border-b xl:border-stone-300 xl:pb-4">
+    <section id="section-presets" className="scroll-mt-20 py-8 xl:pb-0">
+      <div className="mb-3 xl:border-b xl:border-stone-300 xl:pb-3">
         <div className="text-[11px] font-bold tracking-[0.16em] text-teal-800 uppercase mb-1">04 / Perbandingan</div>
-        <h2 className="font-serif text-2xl xl:text-xl font-bold tracking-tight text-stone-900">Perbandingan skenario</h2>
+        <h2 className="text-xl font-semibold text-stone-900">Perbandingan skenario</h2>
         <p className="mt-1 text-xs leading-relaxed text-stone-500">Ringkasan hasil pada empat pilihan pagu.</p>
+      </div>
+
+      <div className="mb-3 overflow-hidden rounded-lg border border-stone-300 bg-stone-950 px-3 py-3 text-white">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-teal-300">Jangkauan program</div>
+            <div className="mt-1 text-xs font-semibold">Akumulasi penerima per skenario</div>
+          </div>
+          <span className="font-mono text-[9px] text-stone-400">DATA PRESET</span>
+        </div>
+        <svg className="mt-2 h-16 w-full" viewBox="0 0 256 78" role="img" aria-label="Kurva akumulasi penerima program pada empat skenario pagu">
+          <path d="M14 64 H242" stroke="#57534e" strokeDasharray="3 4" />
+          <polyline points={pointList} fill="none" stroke="#5eead4" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          {impactPoints.map((point) => (
+            <g key={point.label}>
+              <circle cx={point.x} cy={point.y} r="5" fill="#0f172a" stroke="#5eead4" strokeWidth="3" />
+              <text x={point.x} y={point.y - 9} fill="#ffffff" fontSize="9" fontFamily="monospace" fontWeight="700" textAnchor="middle">{point.reach}</text>
+            </g>
+          ))}
+        </svg>
+        <div className="grid grid-cols-4 gap-1 text-center font-mono text-[8px] text-stone-400">
+          {impactPoints.map((point) => <span key={point.label}>{point.label}</span>)}
+        </div>
+        <p className="mt-2 border-t border-stone-700 pt-2 text-[9px] leading-relaxed text-stone-400">Akumulasi penerima program; bukan jumlah warga unik.</p>
       </div>
 
       <div className="grid sm:grid-cols-2 xl:grid-cols-1 gap-3">
@@ -51,28 +90,27 @@ export const BudgetComparison: React.FC<BudgetComparisonProps> = ({
                 : 'border-stone-300 bg-white'
               }`}
             >
-              <div className="flex items-center justify-between px-4 pt-3.5">
+              <div className="flex items-center justify-between px-3 pt-2.5">
                 <span className="font-mono text-sm font-bold">{label}</span>
                 <span className={`text-[9px] font-bold uppercase tracking-wider ${active ? 'text-teal-300' : 'text-stone-400'}`}>
                   {active ? 'Sedang dilihat' : 'Pembanding'}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-2 px-4 py-3 text-[10px]">
-                <div>
-                  <div className={active ? 'text-teal-300' : 'text-stone-400'}>Program</div>
-                  <div className="mt-0.5 font-mono text-xs font-bold">{data.selected.length}</div>
-                </div>
-                <div>
-                  <div className={active ? 'text-teal-300' : 'text-stone-400'}>Belanja</div>
-                  <div className="mt-0.5 font-mono text-xs font-bold">{shortRupiah(data.total_cost)}</div>
-                </div>
-                <div>
-                  <div className={active ? 'text-teal-300' : 'text-stone-400'}>Skor</div>
-                  <div className="mt-0.5 font-mono text-xs font-bold">{data.total_score.toFixed(1)}</div>
-                </div>
+              <div className="flex items-center justify-between gap-2 px-3 py-2 text-[10px]">
+                <span className={active ? 'text-teal-200' : 'text-stone-500'}>
+                  <strong className="font-mono text-xs">{data.selected.length}</strong> program · {shortRupiah(data.total_cost)}
+                </span>
+                <span className="shrink-0">Skor <strong className="font-mono text-xs">{data.total_score.toFixed(1)}</strong></span>
               </div>
-              <div className={active ? 'bg-teal-900' : 'bg-stone-200'}>
-                <div className={`h-1 ${active ? 'bg-teal-400' : 'bg-teal-700'}`} style={{ width: `${utilization}%` }}></div>
+              <div
+                className={`flex h-1.5 ${active ? 'bg-amber-400' : 'bg-amber-200'}`}
+                role="progressbar"
+                aria-label={`Pagu ${label} yang dialokasikan`}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Number(utilization.toFixed(1))}
+              >
+                <div className={`h-full ${active ? 'bg-teal-400' : 'bg-teal-700'}`} style={{ width: `${utilization}%` }} />
               </div>
             </article>
           );
