@@ -123,7 +123,7 @@ export const AdminDashboard: React.FC = () => {
           <div className="ledger-cover relative px-6 py-8 sm:px-8 sm:py-10 border-l-4 border-teal-800">
             <div className="absolute right-5 top-4 font-mono text-[10px] tracking-[0.18em] text-stone-400">LEMBAR ANALISIS / 001</div>
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-teal-800">RekaDesa · Smart Village Technology</p>
-            <h1 className="mt-3 max-w-2xl font-serif text-3xl sm:text-4xl font-bold leading-[1.08] tracking-tight text-stone-950">
+            <h1 className="mt-3 max-w-2xl text-2xl font-semibold leading-tight text-stone-950 sm:text-3xl">
               Setiap rupiah punya alasan.
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-relaxed text-stone-600">
