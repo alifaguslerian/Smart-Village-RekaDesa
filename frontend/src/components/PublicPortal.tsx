@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { fetchVillage, fetchScoredPrograms } from '../api/client';
 import type { Village, ScoredProgram } from '../types';
-import { Landmark, ShieldAlert, ArrowLeft } from 'lucide-react';
+import { Landmark, ShieldAlert, ArrowLeft, FileInput } from 'lucide-react';
 
 export const PublicPortal: React.FC = () => {
   const { village_id } = useParams<{ village_id: string }>();
@@ -80,10 +80,14 @@ export const PublicPortal: React.FC = () => {
               <p className="text-xs text-stone-500">Pemerintah {village?.name || 'Desa'} · {village?.kecamatan} · {village?.kabupaten}</p>
             </div>
           </div>
-          <Link to="/" className="inline-flex self-start items-center text-xs font-semibold text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-md border border-stone-300">
-            <ArrowLeft className="w-3.5 h-3.5 mr-1" />
-            Dasbor Pemdes
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link to={`/submit/${vid}`} className="inline-flex items-center gap-1.5 border border-teal-800 bg-teal-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-900">
+              <FileInput className="h-3.5 w-3.5" /> Ajukan usulan
+            </Link>
+            <Link to="/" className="inline-flex items-center text-xs font-semibold text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 border border-stone-300">
+              <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Dasbor Pemdes
+            </Link>
+          </div>
         </div>
       </header>
 
