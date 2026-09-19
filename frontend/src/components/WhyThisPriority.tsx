@@ -100,7 +100,7 @@ export const WhyThisPriority: React.FC<WhyThisPriorityProps> = ({
             </div>
             <div className="mt-3 flex flex-col gap-1 border-t border-dashed border-stone-300 pt-3 text-[10px] text-stone-500 sm:flex-row sm:items-center sm:justify-between">
               <span className="font-mono">Kontribusi tampil: {auditSum}</span>
-              <span>Skor keputusan (pembulatan 0,1; format dua digit): <strong className="font-mono text-teal-900">{decisionScore.toFixed(2)}</strong></span>
+              <span>Skor prioritas (pembulatan 0,1; format dua digit): <strong className="font-mono text-teal-900">{decisionScore.toFixed(2)}</strong></span>
             </div>
           </div>
         ) : (
