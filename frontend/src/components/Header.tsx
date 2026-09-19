@@ -41,6 +41,12 @@ export const Header: React.FC<HeaderProps> = ({ villageName = 'Desa Suka Maju' }
           {/* Navigation Steps (Clickable Anchor Rail) */}
           <nav className="hidden md:flex xl:hidden items-center space-x-1 text-xs font-medium text-stone-600">
             <button
+              onClick={() => scrollTo('section-data')}
+              className="px-3 py-1.5 rounded-md hover:bg-stone-200/60 hover:text-stone-900 transition-colors"
+            >
+                <span className="text-teal-800 font-bold mr-1">0.</span> Data
+            </button>
+            <button
               onClick={() => scrollTo('section-profile')}
               className="px-3 py-1.5 rounded-md hover:bg-stone-200/60 hover:text-stone-900 transition-colors"
             >
