@@ -1,6 +1,19 @@
 import React, { useState } from 'react';
 import type { AllocationResult, ScoredProgram } from '../types';
-import { AlertCircle, Calculator, ChevronDown, ChevronUp, XCircle } from 'lucide-react';
+import {
+  AlertCircle,
+  BriefcaseBusiness,
+  Calculator,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Construction,
+  Droplets,
+  GraduationCap,
+  HeartPulse,
+  Leaf,
+  XCircle,
+} from 'lucide-react';
 
 interface ScenarioGeneratorProps {
   villageId: number;
@@ -9,6 +22,7 @@ interface ScenarioGeneratorProps {
   loading: boolean;
   onSelectProgramForDetail?: (program: ScoredProgram) => void;
   selectedDetailProgramId?: number;
+  maxBudget?: number;
 }
 
 const PRESET_AMOUNTS = [
@@ -24,12 +38,32 @@ const formatRupiah = (num: number) => new Intl.NumberFormat('id-ID', {
   maximumFractionDigits: 0,
 }).format(num);
 
+const sectorIcon = (category: string) => {
+  const iconClass = 'h-4 w-4';
+  if (category.includes('Air')) return <Droplets className={iconClass} aria-hidden="true" />;
+  if (category.includes('Kesehatan')) return <HeartPulse className={iconClass} aria-hidden="true" />;
+  if (category.includes('Pendidikan')) return <GraduationCap className={iconClass} aria-hidden="true" />;
+  if (category.includes('Ekonomi')) return <BriefcaseBusiness className={iconClass} aria-hidden="true" />;
+  if (category.includes('Lingkungan')) return <Leaf className={iconClass} aria-hidden="true" />;
+  return <Construction className={iconClass} aria-hidden="true" />;
+};
+
+const allocationTones = [
+  'bg-teal-950',
+  'bg-teal-800',
+  'bg-teal-700',
+  'bg-teal-600',
+  'bg-teal-500',
+  'bg-cyan-700',
+];
+
 export const ScenarioGenerator: React.FC<ScenarioGeneratorProps> = ({
   onAllocate,
   allocationResult,
   loading,
   onSelectProgramForDetail,
   selectedDetailProgramId,
+  maxBudget = 1_000_000_000,
 }) => {
   const [budgetInput, setBudgetInput] = useState(allocationResult?.budget ?? 500_000_000);
   const [showUnselected, setShowUnselected] = useState(false);
@@ -66,7 +100,7 @@ export const ScenarioGenerator: React.FC<ScenarioGeneratorProps> = ({
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-2">Pagu simulasi</label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {PRESET_AMOUNTS.map((preset) => {
+              {PRESET_AMOUNTS.filter(preset => preset.value <= maxBudget).map((preset) => {
                 const active = allocationResult?.budget === preset.value;
                 return (
                   <button
@@ -98,7 +132,7 @@ export const ScenarioGenerator: React.FC<ScenarioGeneratorProps> = ({
                   type="number"
                   step="1000000"
                   min="0"
-                  max="1000000000"
+                  max={maxBudget}
                   value={budgetInput}
                   onChange={(event) => setBudgetInput(Number(event.target.value))}
                   className="w-full pl-9 pr-3 py-2.5 border border-stone-300 rounded-md text-xs font-mono focus:ring-2 focus:ring-teal-700 focus:border-teal-700 bg-stone-50"
@@ -160,7 +194,33 @@ export const ScenarioGenerator: React.FC<ScenarioGeneratorProps> = ({
               <span className="hidden sm:block text-[10px] uppercase tracking-wider text-stone-400">Pilih program untuk melihat rincian</span>
             </div>
 
-            <div className="border-y border-stone-300 divide-y divide-stone-200">
+            <div className="mb-3 overflow-hidden rounded-lg border border-stone-300 bg-white">
+              <div className="flex items-center justify-between gap-3 border-b border-stone-200 px-3 py-2 text-[10px]">
+                <span className="font-bold uppercase tracking-wider text-stone-600">Komposisi program</span>
+                <span className="font-mono text-stone-500">{formatRupiah(allocationResult.total_cost)}</span>
+              </div>
+              <div className="flex h-9" aria-label="Pembagian anggaran pada program terpilih">
+                {allocationResult.selected.map((program, index) => {
+                  const share = allocationResult.total_cost > 0 ? program.biaya / allocationResult.total_cost * 100 : 0;
+                  const active = selectedDetailProgramId === program.id;
+                  return (
+                    <button
+                      type="button"
+                      key={program.id}
+                      onClick={() => onSelectProgramForDetail?.(program)}
+                      title={`${program.name}: ${formatRupiah(program.biaya)} (${share.toFixed(1)}%)`}
+                      aria-label={`${program.name}, ${share.toFixed(1)} persen dari total alokasi`}
+                      className={`relative flex min-w-8 items-center justify-center border-r border-white/40 font-mono text-[10px] font-bold text-white transition-[filter] last:border-r-0 hover:brightness-110 ${allocationTones[index % allocationTones.length]} ${active ? 'ring-2 ring-inset ring-amber-300' : ''}`}
+                      style={{ width: `${share}%` }}
+                    >
+                      {String(index + 1).padStart(2, '0')}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {allocationResult.selected.map((program, index) => {
                 const active = selectedDetailProgramId === program.id;
                 return (
@@ -168,15 +228,37 @@ export const ScenarioGenerator: React.FC<ScenarioGeneratorProps> = ({
                     type="button"
                     key={program.id}
                     onClick={() => onSelectProgramForDetail?.(program)}
-                    className={`w-full grid grid-cols-[28px_1fr_auto] sm:grid-cols-[32px_1fr_150px_90px] items-center gap-3 px-2 py-3 text-left transition-colors ${active ? 'bg-teal-50' : 'hover:bg-stone-50'}`}
+                    aria-pressed={active}
+                    className={`group relative overflow-hidden rounded-lg border p-3 text-left transition-[border-color,background-color,box-shadow] hover:shadow-[0_5px_14px_rgba(28,25,23,0.07)] ${active
+                      ? 'border-teal-800 bg-teal-50 shadow-[inset_3px_0_0_#0f766e]'
+                      : 'border-stone-300 bg-white hover:border-stone-500'
+                    }`}
                   >
-                    <span className="font-mono text-xs text-stone-400">{String(index + 1).padStart(2, '0')}</span>
-                    <span>
-                      <span className="block text-sm font-semibold text-stone-900">{program.name}</span>
-                      <span className="block text-[11px] text-stone-500">{program.kategori} · {program.jumlah_penerima} warga</span>
+                    <span className="flex items-start justify-between gap-3">
+                      <span className="flex items-center gap-2">
+                        <span className={`flex h-7 w-7 items-center justify-center rounded-md ${active ? 'bg-teal-800 text-white' : 'bg-stone-100 text-teal-800'}`}>
+                          {sectorIcon(program.kategori)}
+                        </span>
+                        <span>
+                          <span className="block font-mono text-[8px] uppercase tracking-wider text-stone-400">Program {String(index + 1).padStart(2, '0')}</span>
+                          <span className="block text-[9px] font-semibold text-stone-500">{program.kategori}</span>
+                        </span>
+                      </span>
+                      <span className="flex items-baseline gap-1 text-right">
+                        <span className="font-mono text-lg font-bold text-teal-950">{program.priority_score.toFixed(1)}</span>
+                        <span className="text-[8px] uppercase tracking-wider text-stone-400">skor</span>
+                      </span>
                     </span>
-                    <span className="hidden sm:block text-right font-mono text-xs text-stone-600">{formatRupiah(program.biaya)}</span>
-                    <span className="font-mono text-right text-sm font-bold text-teal-900">{program.priority_score.toFixed(1)}</span>
+
+                    <span className="mt-2.5 block min-h-8 text-xs font-bold leading-snug text-stone-900">{program.name}</span>
+
+                    <span className="mt-2.5 flex items-center justify-between gap-2 border-t border-stone-200 pt-2 text-[10px] text-stone-600">
+                      <span className="font-mono font-semibold">{formatRupiah(program.biaya)}</span>
+                      <span className="flex items-center gap-1.5">
+                        {program.jumlah_penerima} warga
+                        <ChevronRight className={`h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 ${active ? 'text-teal-800' : 'text-stone-400'}`} aria-hidden="true" />
+                      </span>
+                    </span>
                   </button>
                 );
               })}
