@@ -5,6 +5,7 @@ Jalankan: PYTHONPATH=backend DATABASE_URL=sqlite:///./rekadesa.db python -m app.
 from app.db.session import Base, engine, SessionLocal
 from app.models.village import Village
 from app.models.program import Program
+from app.models.workflow import BudgetRecord, ProposalSubmission
 from app.core.canonical_seed import CANONICAL_PROGRAMS, CANONICAL_META
 
 VILLAGE_NAME = "Desa Suka Maju"
@@ -15,6 +16,8 @@ def seed():
     try:
         existing = db.query(Village).filter(Village.name == VILLAGE_NAME).first()
         if existing:
+            db.query(ProposalSubmission).filter(ProposalSubmission.village_id == existing.id).delete()
+            db.query(BudgetRecord).filter(BudgetRecord.village_id == existing.id).delete()
             db.query(Program).filter(Program.village_id == existing.id).delete()
             db.delete(existing)
             db.commit()
@@ -46,6 +49,13 @@ def seed():
                 total_kebutuhan_dimensi=inp.total_kebutuhan_dimensi,
                 dimensi_terkait=dimensi,
             ))
+        db.add(BudgetRecord(
+            village_id=village.id,
+            fiscal_year=2026,
+            amount=1_000_000_000,
+            source="Dataset simulasi RekaDesa; ganti dengan dokumen pagu resmi saat digunakan desa.",
+            verified=False,
+        ))
         db.commit()
         print(f"Seeded {VILLAGE_NAME} with {len(CANONICAL_PROGRAMS)} programs (id={village.id})")
         from app.core.scoring import score_all_programs
