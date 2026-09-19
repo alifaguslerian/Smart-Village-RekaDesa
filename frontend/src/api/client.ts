@@ -1,4 +1,13 @@
-import type { Village, ScoredProgram, AllocationResult, PresetMap } from '../types';
+import type {
+  AllocationResult,
+  BudgetRecord,
+  PresetMap,
+  ProposalCreate,
+  ProposalReview,
+  ProposalSubmission,
+  ScoredProgram,
+  Village,
+} from '../types';
 
 const BASE_URL = '/api';
 const OPERATOR_KEY = 'rekadesa_operator_key';
@@ -59,5 +68,47 @@ export async function runAllocation(villageId: number, budget: number): Promise<
 export async function fetchPresets(villageId: number = 1): Promise<PresetMap> {
   const res = await fetch(`${BASE_URL}/villages/${villageId}/presets`, { headers: operatorHeaders() });
   if (!res.ok) throw new ApiError('Gagal mengambil preset anggaran', res.status);
+  return res.json();
+}
+
+export async function fetchBudget(villageId: number): Promise<BudgetRecord> {
+  const res = await fetch(`${BASE_URL}/villages/${villageId}/budget`);
+  if (!res.ok) throw new ApiError('Gagal mengambil data pagu', res.status);
+  return res.json();
+}
+
+export async function updateBudget(villageId: number, budget: Omit<BudgetRecord, 'id' | 'village_id' | 'updated_at'>): Promise<BudgetRecord> {
+  const res = await fetch(`${BASE_URL}/villages/${villageId}/budget`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...operatorHeaders() },
+    body: JSON.stringify(budget),
+  });
+  if (!res.ok) throw new ApiError('Gagal menyimpan data pagu', res.status);
+  return res.json();
+}
+
+export async function submitProposal(villageId: number, proposal: ProposalCreate): Promise<ProposalSubmission> {
+  const res = await fetch(`${BASE_URL}/villages/${villageId}/proposals`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(proposal),
+  });
+  if (!res.ok) throw new ApiError('Gagal mengirim usulan', res.status);
+  return res.json();
+}
+
+export async function fetchProposals(villageId: number): Promise<ProposalSubmission[]> {
+  const res = await fetch(`${BASE_URL}/villages/${villageId}/proposals`, { headers: operatorHeaders() });
+  if (!res.ok) throw new ApiError('Gagal mengambil daftar usulan', res.status);
+  return res.json();
+}
+
+export async function reviewProposal(proposalId: number, review: ProposalReview): Promise<ProposalSubmission> {
+  const res = await fetch(`${BASE_URL}/proposals/${proposalId}/review`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...operatorHeaders() },
+    body: JSON.stringify(review),
+  });
+  if (!res.ok) throw new ApiError('Gagal memeriksa usulan', res.status);
   return res.json();
 }
