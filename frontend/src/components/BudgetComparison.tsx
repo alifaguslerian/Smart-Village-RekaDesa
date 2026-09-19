@@ -43,12 +43,26 @@ export const BudgetComparison: React.FC<BudgetComparisonProps> = ({
   }));
   const pointList = impactPoints.map((point) => `${point.x},${point.y}`).join(' ');
 
+  if (impactData.length === 0) {
+    return (
+      <section id="section-presets" className="scroll-mt-20 py-8 xl:pb-0">
+        <div className="border border-stone-300 bg-white p-5">
+          <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-teal-800">04 / Perbandingan</div>
+          <h2 className="mt-1 text-xl font-semibold text-stone-900">Belum ada preset yang sesuai</h2>
+          <p className="mt-2 text-xs leading-relaxed text-stone-600">
+            Pagu tercatat lebih kecil dari Rp300 juta. Gunakan nominal khusus pada simulator tanpa melampaui batas pagu.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="section-presets" className="scroll-mt-20 py-8 xl:pb-0">
       <div className="mb-3 xl:border-b xl:border-stone-300 xl:pb-3">
         <div className="text-[11px] font-bold tracking-[0.16em] text-teal-800 uppercase mb-1">04 / Perbandingan</div>
         <h2 className="text-xl font-semibold text-stone-900">Perbandingan skenario</h2>
-        <p className="mt-1 text-xs leading-relaxed text-stone-500">Ringkasan hasil pada empat pilihan pagu.</p>
+        <p className="mt-1 text-xs leading-relaxed text-stone-500">Ringkasan skenario yang tidak melebihi batas pagu tercatat.</p>
       </div>
 
       <div className="mb-3 overflow-hidden rounded-lg border border-stone-300 bg-stone-950 px-3 py-3 text-white">
@@ -59,7 +73,7 @@ export const BudgetComparison: React.FC<BudgetComparisonProps> = ({
           </div>
           <span className="font-mono text-[9px] text-stone-400">DATA PRESET</span>
         </div>
-        <svg className="mt-2 h-16 w-full" viewBox="0 0 256 78" role="img" aria-label="Kurva akumulasi penerima program pada empat skenario pagu">
+        <svg className="mt-2 h-16 w-full" viewBox="0 0 256 78" role="img" aria-label="Kurva akumulasi penerima program pada skenario pagu yang tersedia">
           <path d="M14 64 H242" stroke="#57534e" strokeDasharray="3 4" />
           <polyline points={pointList} fill="none" stroke="#5eead4" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
           {impactPoints.map((point) => (
@@ -69,7 +83,7 @@ export const BudgetComparison: React.FC<BudgetComparisonProps> = ({
             </g>
           ))}
         </svg>
-        <div className="grid grid-cols-4 gap-1 text-center font-mono text-[8px] text-stone-400">
+        <div className="grid gap-1 text-center font-mono text-[8px] text-stone-400" style={{ gridTemplateColumns: `repeat(${Math.max(impactPoints.length, 1)}, minmax(0, 1fr))` }}>
           {impactPoints.map((point) => <span key={point.label}>{point.label}</span>)}
         </div>
         <p className="mt-2 border-t border-stone-700 pt-2 text-[9px] leading-relaxed text-stone-400">Akumulasi penerima program; bukan jumlah warga unik.</p>
