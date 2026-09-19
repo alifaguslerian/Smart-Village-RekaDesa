@@ -1,20 +1,47 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.village import Village
 from app.models.program import Program
+from app.models.workflow import BudgetRecord, ProposalSubmission
 from app.core.scoring import ProgramInput, score_all_programs
 from app.core.allocation import knapsack_allocate, allocate_presets
 from app.core.config import BUDGET_PRESETS
-from app.schemas.program import VillageOut, ProgramOut, ScoredProgramOut, AllocateRequest, AllocationOut
+from app.schemas.program import (
+    AllocationOut,
+    AllocateRequest,
+    BudgetOut,
+    BudgetUpdate,
+    ProgramOut,
+    ProposalCreate,
+    ProposalOut,
+    ProposalReview,
+    ScoredProgramOut,
+    VillageOut,
+)
 from app.api.security import require_operator
 
 router = APIRouter()
 
-def _score_village_programs(db: Session, village_id: int):
+
+def _get_village(db: Session, village_id: int) -> Village:
     village = db.query(Village).filter(Village.id == village_id).first()
     if not village:
         raise HTTPException(404, "Desa tidak ditemukan")
+    return village
+
+
+def _get_budget(db: Session, village_id: int) -> BudgetRecord:
+    _get_village(db, village_id)
+    budget = db.query(BudgetRecord).filter(BudgetRecord.village_id == village_id).first()
+    if not budget:
+        raise HTTPException(409, "Data pagu belum disiapkan")
+    return budget
+
+def _score_village_programs(db: Session, village_id: int):
+    village = _get_village(db, village_id)
     programs = db.query(Program).filter(Program.village_id == village_id).all()
     if not programs:
         return village, [], []
@@ -60,16 +87,100 @@ def list_villages(db: Session = Depends(get_db)):
 
 @router.get("/villages/{village_id}", response_model=VillageOut)
 def get_village(village_id: int, db: Session = Depends(get_db)):
-    v = db.query(Village).filter(Village.id == village_id).first()
-    if not v:
-        raise HTTPException(404, "Desa tidak ditemukan")
-    return v
+    return _get_village(db, village_id)
+
+
+@router.get("/villages/{village_id}/budget", response_model=BudgetOut)
+def get_budget(village_id: int, db: Session = Depends(get_db)):
+    return _get_budget(db, village_id)
+
+
+@router.put("/villages/{village_id}/budget", response_model=BudgetOut)
+def update_budget(
+    village_id: int,
+    payload: BudgetUpdate,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_operator),
+):
+    budget = _get_budget(db, village_id)
+    for field, value in payload.model_dump().items():
+        setattr(budget, field, value)
+    budget.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(budget)
+    return budget
+
+
+@router.post("/villages/{village_id}/proposals", response_model=ProposalOut, status_code=201)
+def submit_proposal(village_id: int, payload: ProposalCreate, db: Session = Depends(get_db)):
+    _get_village(db, village_id)
+    proposal = ProposalSubmission(village_id=village_id, **payload.model_dump())
+    db.add(proposal)
+    db.commit()
+    db.refresh(proposal)
+    return proposal
+
+
+@router.get("/villages/{village_id}/proposals", response_model=list[ProposalOut])
+def list_proposals(
+    village_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_operator),
+):
+    _get_village(db, village_id)
+    return (
+        db.query(ProposalSubmission)
+        .filter(ProposalSubmission.village_id == village_id)
+        .order_by(ProposalSubmission.created_at.desc())
+        .limit(200)
+        .all()
+    )
+
+
+@router.post("/proposals/{proposal_id}/review", response_model=ProposalOut)
+def review_proposal(
+    proposal_id: int,
+    payload: ProposalReview,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_operator),
+):
+    proposal = db.query(ProposalSubmission).filter(ProposalSubmission.id == proposal_id).first()
+    if not proposal:
+        raise HTTPException(404, "Usulan tidak ditemukan")
+    if proposal.status != "pending":
+        raise HTTPException(409, "Usulan ini sudah diperiksa")
+
+    proposal.reviewed_by = payload.reviewed_by.strip()
+    proposal.catatan_review = payload.catatan_review.strip()
+    proposal.reviewed_at = datetime.now(timezone.utc)
+
+    if payload.decision == "reject":
+        proposal.status = "rejected"
+    else:
+        program = Program(
+            village_id=proposal.village_id,
+            name=proposal.name,
+            kategori=proposal.kategori,
+            biaya=payload.biaya,
+            jumlah_penerima=proposal.jumlah_penerima,
+            urgency=payload.urgency,
+            di_kategori=payload.di_kategori,
+            skor_idm_dimensi=payload.skor_idm_dimensi,
+            total_kebutuhan_dimensi=payload.total_kebutuhan_dimensi,
+            dimensi_terkait=payload.dimensi_terkait,
+        )
+        db.add(program)
+        db.flush()
+        proposal.program_id = program.id
+        proposal.status = "approved"
+
+    db.commit()
+    db.refresh(proposal)
+    return proposal
 
 @router.get("/villages/{village_id}/programs", response_model=list[ProgramOut])
 def list_programs(village_id: int, db: Session = Depends(get_db), _: None = Depends(require_operator)):
-    village = db.query(Village).filter(Village.id == village_id).first()
-    if not village:
-        raise HTTPException(404, "Desa tidak ditemukan")
+    _get_village(db, village_id)
     return db.query(Program).filter(Program.village_id == village_id).all()
 
 @router.get("/villages/{village_id}/scored", response_model=list[ScoredProgramOut])
@@ -79,6 +190,9 @@ def list_scored(village_id: int, db: Session = Depends(get_db)):
 
 @router.post("/allocate", response_model=AllocationOut)
 def allocate(req: AllocateRequest, db: Session = Depends(get_db), _: None = Depends(require_operator)):
+    budget_record = _get_budget(db, req.village_id)
+    if req.budget > budget_record.amount:
+        raise HTTPException(422, f"Pagu simulasi melebihi batas tercatat Rp {budget_record.amount:,}")
     _, programs, scored = _score_village_programs(db, req.village_id)
     if not programs:
         raise HTTPException(404, "Tidak ada program untuk desa ini")
@@ -108,10 +222,12 @@ def allocate(req: AllocateRequest, db: Session = Depends(get_db), _: None = Depe
 
 @router.get("/villages/{village_id}/presets")
 def get_presets(village_id: int, db: Session = Depends(get_db), _: None = Depends(require_operator)):
+    budget_record = _get_budget(db, village_id)
     _, programs, scored = _score_village_programs(db, village_id)
     if not programs:
         raise HTTPException(404, "Tidak ada program")
-    results = allocate_presets(scored, BUDGET_PRESETS)
+    available_presets = [budget for budget in BUDGET_PRESETS if budget <= budget_record.amount]
+    results = allocate_presets(scored, available_presets)
     out = {}
     for budget, res in results.items():
         sel_ids = {id(s) for s in res.selected}
