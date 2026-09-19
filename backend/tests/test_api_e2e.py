@@ -72,11 +72,116 @@ def test_e2e_92_via_scored_and_program(monkeypatch):
         assert set(presets.keys()) == {"300000000", "500000000", "750000000", "1000000000"}
         for v in presets.values():
             assert v["remaining_budget"] == v["budget"] - v["total_cost"]
+
+        # Alur usulan: warga mengirim -> operator memeriksa -> baru masuk scoring.
+        before_count = len(scored)
+        submitted = client.post(f"/api/villages/{vid}/proposals", json={
+            "name": "Perbaikan Jembatan Dusun III",
+            "kategori": "Infrastruktur",
+            "lokasi": "Dusun III",
+            "masalah": "Jembatan rusak menghambat akses warga menuju kebun dan sekolah.",
+            "jumlah_penerima": 75,
+            "alasan_urgensi": "Kerusakan bertambah saat hujan dan membahayakan pengguna.",
+            "sumber_data": "Berita Acara Musdus III tanggal 10 Agustus 2026",
+            "pengusul": "Perwakilan Dusun III",
+        })
+        assert submitted.status_code == 201
+        proposal = submitted.json()
+        assert proposal["status"] == "pending"
+        assert len(client.get(f"/api/villages/{vid}/scored").json()) == before_count
+        invalid_text = client.post(f"/api/villages/{vid}/proposals", json={
+            "name": "     ",
+            "kategori": "Infrastruktur",
+            "lokasi": "Dusun III",
+            "masalah": "              ",
+            "jumlah_penerima": 75,
+            "alasan_urgensi": "              ",
+            "sumber_data": "   ",
+            "pengusul": "   ",
+        })
+        assert invalid_text.status_code == 422
+
+        reviewed = client.post(f"/api/proposals/{proposal['id']}/review", json={
+            "decision": "approve",
+            "reviewed_by": "Tim Verifikasi Desa",
+            "catatan_review": "Data Musdus dan estimasi awal telah diperiksa.",
+            "biaya": 60_000_000,
+            "urgency": 78,
+            "di_kategori": "Tinggi",
+            "skor_idm_dimensi": 40,
+            "total_kebutuhan_dimensi": 100,
+            "dimensi_terkait": "Infrastruktur",
+        })
+        assert reviewed.status_code == 200
+        assert reviewed.json()["status"] == "approved"
+        assert len(client.get(f"/api/villages/{vid}/scored").json()) == before_count + 1
+        assert client.post(f"/api/proposals/{proposal['id']}/review", json={
+            "decision": "reject",
+            "reviewed_by": "Tim Verifikasi Desa",
+            "catatan_review": "Tidak boleh diperiksa dua kali.",
+        }).status_code == 409
+
+        rejected_submission = client.post(f"/api/villages/{vid}/proposals", json={
+            "name": "Usulan Tanpa Bukti Lapangan",
+            "kategori": "Infrastruktur",
+            "lokasi": "Dusun I",
+            "masalah": "Usulan perlu diperiksa karena bukti kondisi awal belum tersedia.",
+            "jumlah_penerima": 20,
+            "alasan_urgensi": "Pengusul meminta pembahasan pada Musyawarah Desa berikutnya.",
+            "sumber_data": "Catatan awal pengusul",
+            "pengusul": "Perwakilan Dusun I",
+        }).json()
+        rejected = client.post(f"/api/proposals/{rejected_submission['id']}/review", json={
+            "decision": "reject",
+            "reviewed_by": "Tim Verifikasi Desa",
+            "catatan_review": "Bukti lapangan dan berita acara belum tersedia.",
+        })
+        assert rejected.status_code == 200
+        assert rejected.json()["status"] == "rejected"
+        assert len(client.get(f"/api/villages/{vid}/scored").json()) == before_count + 1
+
+        # Pagu tercatat menjadi batas maksimum simulasi.
+        budget = client.get(f"/api/villages/{vid}/budget").json()
+        assert budget["amount"] == 1_000_000_000
+        updated_budget = client.put(f"/api/villages/{vid}/budget", json={
+            "fiscal_year": 2026,
+            "amount": 300_000_000,
+            "source": "Dokumen pagu simulasi yang telah diperiksa untuk pengujian.",
+            "verified": True,
+            "verified_by": "BPD Desa",
+        })
+        assert updated_budget.status_code == 200
+        assert client.post("/api/allocate", json={"village_id": vid, "budget": 500_000_000}).status_code == 422
+        assert set(client.get(f"/api/villages/{vid}/presets").json().keys()) == {"300000000"}
+
         with monkeypatch.context() as env:
             env.setenv("REKADESA_MODE", "production")
             env.setenv("OPERATOR_API_KEY", "test-secret-operator-key-32-characters")
+            protected_proposal = client.post(f"/api/villages/{vid}/proposals", json={
+                "name": "Penerangan Jalan Dusun I",
+                "kategori": "Infrastruktur",
+                "lokasi": "Dusun I",
+                "masalah": "Jalur utama belum memiliki penerangan yang memadai pada malam hari.",
+                "jumlah_penerima": 40,
+                "alasan_urgensi": "Aktivitas malam dan keselamatan warga saat ini terganggu.",
+                "sumber_data": "Berita Acara Musdus I",
+                "pengusul": "Perwakilan Dusun I",
+            }).json()
             assert client.get(f"/api/villages/{vid}/scored").status_code == 200
             assert client.get(f"/api/villages/{vid}/presets").status_code == 401
+            assert client.get(f"/api/villages/{vid}/proposals").status_code == 401
+            assert client.post(f"/api/proposals/{protected_proposal['id']}/review", json={
+                "decision": "reject",
+                "reviewed_by": "Tim Verifikasi",
+                "catatan_review": "Sumber belum cukup.",
+            }).status_code == 401
+            assert client.put(f"/api/villages/{vid}/budget", json={
+                "fiscal_year": 2026,
+                "amount": 300_000_000,
+                "source": "Dokumen pengujian mode produksi.",
+                "verified": False,
+                "verified_by": None,
+            }).status_code == 401
             assert client.post("/api/allocate", json={"village_id": vid, "budget": 0}).status_code == 401
             assert client.post("/api/allocate", json={"village_id": vid, "budget": 0}, headers={"X-Operator-Key": "test-secret-operator-key-32-characters"}).status_code == 200
         statuses = [client.post("/api/allocate", json={"village_id": vid, "budget": 0}).status_code for _ in range(30)]
