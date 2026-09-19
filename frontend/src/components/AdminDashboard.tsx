@@ -4,14 +4,18 @@ import { VillageProfile } from './VillageProfile';
 import { ScenarioGenerator } from './ScenarioGenerator';
 import { WhyThisPriority } from './WhyThisPriority';
 import { BudgetComparison } from './BudgetComparison';
-import { fetchVillage, fetchPresets, runAllocation, fetchScoredPrograms, ApiError, setOperatorKey, clearOperatorKey, hasOperatorKey } from '../api/client';
-import type { Village, AllocationResult, PresetMap, ScoredProgram } from '../types';
+import { DataPreparation } from './DataPreparation';
+import { FileCheck2, Scale, Sigma } from 'lucide-react';
+import { fetchBudget, fetchProposals, fetchVillage, fetchPresets, runAllocation, fetchScoredPrograms, ApiError, setOperatorKey, clearOperatorKey, hasOperatorKey } from '../api/client';
+import type { Village, AllocationResult, BudgetRecord, PresetMap, ProposalSubmission, ScoredProgram } from '../types';
 
 export const AdminDashboard: React.FC = () => {
   const [village, setVillage] = useState<Village | null>(null);
   const [allocationResult, setAllocationResult] = useState<AllocationResult | null>(null);
   const [presets, setPresets] = useState<PresetMap | null>(null);
   const [allPrograms, setAllPrograms] = useState<ScoredProgram[]>([]);
+  const [budgetRecord, setBudgetRecord] = useState<BudgetRecord | null>(null);
+  const [proposals, setProposals] = useState<ProposalSubmission[]>([]);
   const [selectedProgram, setSelectedProgram] = useState<ScoredProgram | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [allocating, setAllocating] = useState<boolean>(false);
@@ -28,14 +32,21 @@ export const AdminDashboard: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const [vData, pData, scoredList, initAlloc] = await Promise.all([
+        const [vData, budgetData, proposalData] = await Promise.all([
           fetchVillage(1),
+          fetchBudget(1),
+          fetchProposals(1),
+        ]);
+        const initialBudget = Math.min(500_000_000, budgetData.amount);
+        const [pData, scoredList, initAlloc] = await Promise.all([
           fetchPresets(1),
           fetchScoredPrograms(1),
-          runAllocation(1, 500_000_000),
+          runAllocation(1, initialBudget),
         ]);
         if (!alive) return;
         setVillage(vData);
+        setBudgetRecord(budgetData);
+        setProposals(proposalData);
         setPresets(pData);
         setAllPrograms(scoredList);
         if (initId === requestId.current) setAllocationResult(initAlloc);
@@ -98,6 +109,34 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleDataChanged = async () => {
+    const currentId = ++requestId.current;
+    try {
+      setAllocating(true);
+      setError(null);
+      const [budgetData, proposalData] = await Promise.all([fetchBudget(1), fetchProposals(1)]);
+      const nextBudget = Math.min(allocationResult?.budget ?? 500_000_000, budgetData.amount);
+      const [pData, scoredList, nextAllocation] = await Promise.all([
+        fetchPresets(1),
+        fetchScoredPrograms(1),
+        runAllocation(1, nextBudget),
+      ]);
+      if (currentId !== requestId.current) return;
+      setBudgetRecord(budgetData);
+      setProposals(proposalData);
+      setPresets(pData);
+      setAllPrograms(scoredList);
+      setAllocationResult(nextAllocation);
+      if (scoredList.length > 0) {
+        setSelectedProgram([...scoredList].sort((a, b) => b.priority_score - a.priority_score)[0]);
+      }
+    } catch (err) {
+      if (currentId === requestId.current) setError(err instanceof ApiError && err.status === 401 ? 'Kunci operator tidak valid atau belum diisi.' : 'Data belum berhasil diperbarui.');
+    } finally {
+      if (currentId === requestId.current) setAllocating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#fdfcf8] text-stone-900 flex flex-col selection:bg-teal-100 selection:text-teal-900">
       {/* Header Sticky dengan Clickable Anchor Rail */}
@@ -119,47 +158,61 @@ export const AdminDashboard: React.FC = () => {
         {hasOperatorKey() && !needsKey && <button onClick={() => { clearOperatorKey(); window.location.reload(); }} className="mt-3 text-xs text-stone-600 underline">Hapus kunci operator dari sesi ini</button>}
 
         {/* Sampul ringkas: satu visual anchor untuk menjelaskan alur RekaDesa */}
-        <section className="grid lg:grid-cols-[1.45fr_0.75fr] border border-stone-300 mt-8 mb-1 overflow-hidden shadow-[0_12px_32px_rgba(28,25,23,0.06)]">
-          <div className="ledger-cover relative px-6 py-8 sm:px-8 sm:py-10 border-l-4 border-teal-800">
+        <section className="mt-8 mb-1 grid overflow-hidden border border-stone-300 shadow-[0_12px_32px_rgba(28,25,23,0.06)] lg:grid-cols-[1.35fr_0.9fr]">
+          <div className="ledger-cover relative border-l-4 border-teal-800 px-6 py-6 sm:px-8">
             <div className="absolute right-5 top-4 font-mono text-[10px] tracking-[0.18em] text-stone-400">LEMBAR ANALISIS / 001</div>
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-teal-800">RekaDesa · Smart Village Technology</p>
-            <h1 className="mt-3 max-w-2xl text-2xl font-semibold leading-tight text-stone-950 sm:text-3xl">
+            <h1 className="mt-2.5 max-w-2xl text-2xl font-semibold leading-tight text-stone-950 sm:text-3xl">
               Setiap rupiah punya alasan.
             </h1>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-stone-600">
-              RekaDesa mengubah data kebutuhan menjadi skor yang dapat ditelusuri dan kombinasi program yang tidak melampaui pagu.
+            <p className="mt-2.5 max-w-xl text-sm leading-relaxed text-stone-600">
+              Data kebutuhan dihitung dengan rumus terbuka untuk menyusun kombinasi program di dalam batas pagu.
             </p>
-            <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-[11px] font-semibold text-stone-700">
-              <span className="before:mr-2 before:text-teal-700 before:content-['●']">Perhitungan tetap</span>
-              <span className="before:mr-2 before:text-teal-700 before:content-['●']">Kombinasi optimal</span>
-              <span className="before:mr-2 before:text-teal-700 before:content-['●']">Hasil terbuka</span>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              {[
+                { icon: FileCheck2, label: 'Input tercatat', detail: 'Usulan + sumber data' },
+                { icon: Sigma, label: 'Rumus terbuka', detail: '5 komponen tetap' },
+                { icon: Scale, label: 'Keputusan manusia', detail: 'Musdes + BPD' },
+              ].map(({ icon: Icon, label, detail }) => (
+                <div key={label} className="flex items-center gap-2 rounded-md border border-stone-300 bg-white/75 px-3 py-2">
+                  <span className="text-teal-800">
+                    <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                  </span>
+                  <span>
+                    <span className="block text-[10px] font-bold leading-none text-stone-800">{label}</span>
+                    <span className="mt-1 block text-[9px] leading-none text-stone-500">{detail}</span>
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 
-          <aside className="official-panel bg-teal-950 px-6 py-7 text-stone-100">
-            <div className="flex items-center justify-between border-b border-teal-700 pb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-teal-200">
+          <aside className="official-panel bg-teal-950 px-5 py-5 text-stone-100">
+            <div className="flex items-center justify-between border-b border-teal-700 pb-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-teal-200">
               <span>Alur keputusan</span>
-              <span className="font-mono">4 tahap</span>
+              <span className="font-mono">5 tahap</span>
             </div>
-            <ol className="divide-y divide-teal-800/80 text-xs">
+            <ol className="mt-3 grid grid-cols-2 gap-1.5 text-[10px]">
               {[
-                ['01', 'Ukur kebutuhan desa'],
-                ['02', 'Hitung prioritas'],
-                ['03', 'Susun kombinasi'],
-                ['04', 'Publikasikan hasil'],
+                ['01', 'Catat dan periksa usulan'],
+                ['02', 'Ukur kebutuhan desa'],
+                ['03', 'Hitung prioritas'],
+                ['04', 'Susun kombinasi'],
+                ['05', 'Publikasikan hasil'],
               ].map(([number, label]) => (
-                <li key={number} className="flex items-center gap-4 py-3">
+                <li key={number} className={`flex items-center gap-2 border border-teal-800 bg-teal-900/50 px-2.5 py-2 ${number === '05' ? 'col-span-2' : ''}`}>
                   <span className="font-mono text-teal-400">{number}</span>
-                  <span className="font-semibold">{label}</span>
+                  <span className="font-semibold leading-tight">{label}</span>
                 </li>
               ))}
             </ol>
-            <div className="mt-5 flex items-end justify-between gap-3">
+            <div className="mt-3 flex items-center justify-between gap-3 border-t border-teal-800 pt-3">
               <div>
                 <div className="text-[9px] uppercase tracking-wider text-teal-300">Bobot penilaian</div>
-                <div className="mt-1 font-mono text-sm font-bold tracking-wider">30 · 25 · 20 · 15 · 10</div>
+                <div className="mt-0.5 font-mono text-xs font-bold tracking-wider">30 · 25 · 20 · 15 · 10</div>
               </div>
-              <div className="rotate-[-3deg] border border-teal-400 px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-teal-200">
+              <div className="border border-teal-500 px-2 py-1 font-mono text-[8px] font-bold uppercase tracking-wider text-teal-200">
                 Terbuka
               </div>
             </div>
@@ -171,6 +224,7 @@ export const AdminDashboard: React.FC = () => {
             <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-stone-400">Alur analisis</div>
             <nav aria-label="Navigasi tahapan analisis" className="mt-4 border-l border-stone-300">
               {[
+                ['00', 'Data masuk', 'section-data'],
                 ['01', 'Kondisi desa', 'section-profile'],
                 ['02', 'Simulasi', 'section-simulator'],
                 ['03', 'Perhitungan', 'section-why'],
@@ -194,6 +248,7 @@ export const AdminDashboard: React.FC = () => {
           </aside>
 
           <div className="min-w-0">
+            <DataPreparation villageId={1} budget={budgetRecord} proposals={proposals} onChanged={handleDataChanged} />
             <VillageProfile village={village} loading={loading} />
             <ScenarioGenerator
               key={allocationResult?.budget ?? 'initial'}
@@ -203,6 +258,7 @@ export const AdminDashboard: React.FC = () => {
               loading={allocating}
               onSelectProgramForDetail={handleSelectProgram}
               selectedDetailProgramId={selectedProgram?.id}
+              maxBudget={budgetRecord?.amount}
             />
             <WhyThisPriority
               program={selectedProgram}
